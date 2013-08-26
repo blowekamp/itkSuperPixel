@@ -37,7 +37,7 @@ as a remote module, which enables automatic fetching. Add a file in
 "ITK/Modules/Remote" called "YourModule.remote.cmake", for this module
 it would be "ExternalExample.remote.cmake" with the followlowing contents:
 
-itk_fetch_module(ExternalExample
+itk_fetch_module(ExternalTemplate
   "A template for a module."
   GIT_REPOSITORY http://github.com/blowekamp/itkExternalTemplate.git
   GIT_TAG master
