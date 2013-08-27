@@ -3,13 +3,15 @@
 get_filename_component( MY_CURENT_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 file( READ "${MY_CURENT_DIR}/README" DOCUMENTATION )
 
-# itk_module() defines the module dependencies in ITKExternalTemplate
-# ITKExternalTemplate depends on ITKCommon
-# The testing module in ITKExternalTemplate depends on ITKTestKernel
-# and ITKMetaIO(besides ITKExternalTemplate and ITKCore)
+# itk_module() defines the module dependencies in ExternalTemplate
+# ExternalTemplate depends on ITKCommon
+# The testing module in ExternalTemplate depends on ITKTestKernel
+# and ITKMetaIO(besides ExternalTemplate and ITKCore)
+# By convention those modules outside of ITK are not prefixed with
+# ITK.
 
 # define the dependencies of the include module and the tests
-itk_module(ITKExternalTemplate
+itk_module(ExternalTemplate
   DEPENDS
     ITKCommon
   TEST_DEPENDS
