@@ -1,3 +1,3 @@
-project(ExternalTemplate)
-set(ExternalTemplate_LIBRARIES ExternalTemplate)
+project(SuperPixel)
+set(SuperPixel_LIBRARIES SuperPixel)
 itk_module_impl()

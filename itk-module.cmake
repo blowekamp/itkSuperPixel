@@ -10,15 +10,15 @@ if (NOT "${ITK_VERSION_MAJOR}.${ITK_VERSION_MINOR}.${ITK_VERSION_MINOR_PATCH}" V
   set( _EXCLUDE "EXCLUDE_FROM_DEFAULT" )
 endif()
 
-# itk_module() defines the module dependencies in ExternalTemplate
-# ExternalTemplate depends on ITKCommon
-# The testing module in ExternalTemplate depends on ITKTestKernel
-# and ITKMetaIO(besides ExternalTemplate and ITKCore)
+# itk_module() defines the module dependencies in SuperPixel
+# SuperPixel depends on ITKCommon
+# The testing module in SuperPixel depends on ITKTestKernel
+# and ITKMetaIO(besides SuperPixel and ITKCore)
 # By convention those modules outside of ITK are not prefixed with
 # ITK.
 
 # define the dependencies of the include module and the tests
-itk_module(ExternalTemplate
+itk_module(SuperPixel
   DEPENDS
     ITKCommon
   TEST_DEPENDS
