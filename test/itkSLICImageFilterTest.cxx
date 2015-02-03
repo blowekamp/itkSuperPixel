@@ -17,9 +17,18 @@
  *=========================================================================*/
 
 
+#include "itkVectorImage.h"
 #include "itkSLICImageFilter.h"
 
 int itkSLICImageFilterTest(int argc, char *arg[])
 {
+  const unsigned int Dimension = 3;
+  typedef itk::VectorImage<float, Dimension> InputImageType;
+  typedef itk::Image<unsigned int, Dimension> OutputImageType;
+
+  typedef itk::SLICImageFilter< InputImageType, OutputImageType > FilterType;
+
+  FilterType::Pointer filter = FilterType::New();
+
   return 0;
 }
