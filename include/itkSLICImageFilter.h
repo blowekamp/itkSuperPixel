@@ -53,6 +53,16 @@ protected:
       Superclass::PrintSelf(os, indent);
     }
 
+
+  /** Generate full output and require full input */
+  void EnlargeOutputRequestedRegion(DataObject *output)
+    {
+      Superclass::EnlargeOutputRequestedRegion(output);
+      output->SetRequestedRegionToLargestPossibleRegion();
+    }
+
+
+
   void GenerateData() ITK_OVERRIDE
     {
     }
