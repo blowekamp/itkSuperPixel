@@ -83,6 +83,67 @@ protected:
 
   void GenerateData() ITK_OVERRIDE
     {
+      itkDebugMacro("Starting GenerateData");
+      this->AllocateOutputs();
+
+      const InputImageType *inputImage = this->GetInput();
+
+      OutputImageType *outputImage = this->GetOutput();
+
+
+      typedef typename InputImageType::PixelType InputPixelType;
+
+      // assume variable length vector right now
+      typedef VariableLengthVector<double> ClusterType;
+
+      itkDebugMacro("Shinking Starting")
+      typename InputImageType::Pointer shrunkImage;
+      {
+      // todo disconnect input from pipeline
+      typedef itk::ShrinkImageFilter<InputImageType, InputImageType> ShrinkImageFilterType;
+      typename ShrinkImageFilterType::Pointer shrinker = ShrinkImageFilterType::New();
+      shrinker->SetInput(inputImage);
+      shrinker->SetShrinkFactors(m_SuperGridSize);
+      shrinker->UpdateLargestPossibleRegion();
+
+      shrunkImage = shrinker->GetOutput();
+      }
+      itkDebugMacro("Shinking Completed")
+
+      typedef ImageRegionConstIteratorWithIndex<InputImageType> IteratorType;
+      IteratorType it(shrunkImage, shrunkImage->GetBufferedRegion());
+
+      const unsigned int numberOfComponents = inputImage->GetNumberOfComponentsPerPixel();
+      const unsigned int numberOfClusterComponents = numberOfComponents+ImageDimension;
+      const size_t numberOfClusters = shrunkImage->GetBufferedRegion().GetNumberOfPixels();
+      std::vector<ClusterType> clusters;
+      clusters.reserve(numberOfComponents);
+
+      // Initialize cluster centers
+      for(it.GoToBegin(); !it.IsAtEnd(); ++it)
+        {
+        ClusterType cluster( numberOfClusterComponents );
+        unsigned int i = 0;
+        while(i < numberOfComponents)
+          {
+          cluster[i] = it.Get()[i];
+          ++i;
+          }
+        const typename IteratorType::IndexType & idx = it.GetIndex();
+        while( i < numberOfClusterComponents)
+          {
+          cluster[i] = idx[i-numberOfComponents];
+          ++i;
+          }
+        clusters.push_back(cluster);
+        std::cout << "Cluster " << clusters.size()-1 << ": " << cluster << std::endl;
+        }
+      itkDebugMacro("Initial Clustering Completed")
+
+      shrunkImage = ITK_NULLPTR;
+
+      // TODO: Move cluster center to lowest gradient position in a 3x
+      // neighborhood
     }
 
 private:

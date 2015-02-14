@@ -21,6 +21,7 @@ endif()
 itk_module(SuperPixel
   DEPENDS
     ITKCommon
+    ITKImageGrid
   TEST_DEPENDS
     ITKTestKernel
     ITKMetaIO
