@@ -16,19 +16,33 @@
  *
  *=========================================================================*/
 
-
-#include "itkVectorImage.h"
 #include "itkSLICImageFilter.h"
+#include "itkVectorImage.h"
+#include "itkImageFileReader.h"
 
-int itkSLICImageFilterTest(int argc, char *arg[])
+
+int itkSLICImageFilterTest(int argc, char *argv[])
 {
-  const unsigned int Dimension = 3;
+  if (argc < 1)
+    {
+    std::cerr << "Expected Filename\n";
+    return EXIT_FAILURE;
+    }
+
+
+  const unsigned int Dimension = 2;
   typedef itk::VectorImage<float, Dimension> InputImageType;
   typedef itk::Image<unsigned int, Dimension> OutputImageType;
 
-  typedef itk::SLICImageFilter< InputImageType, OutputImageType > FilterType;
+typedef itk::ImageFileReader<InputImageType> ReaderType;
+ReaderType::Pointer reader = ReaderType::New();
+reader->SetFileName(argv[1]);
 
+  typedef itk::SLICImageFilter< InputImageType, OutputImageType > FilterType;
   FilterType::Pointer filter = FilterType::New();
+filter->SetInput(reader->GetOutput());
+filter->DebugOn();
+filter->Update();
 
   return 0;
 }
