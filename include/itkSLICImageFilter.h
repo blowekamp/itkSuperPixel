@@ -19,6 +19,10 @@
 #define itkSLICImageFilter_h
 
 #include "itkImageToImageFilter.h"
+#include "itkVariableLengthVector.h"
+
+#include "itkShrinkImageFilter.h"
+#include "itkImageRegionConstIteratorWithIndex.h"
 
 namespace itk
 {
@@ -43,9 +47,23 @@ public:
   /** Image type information. */
   typedef TInputImage  InputImageType;
   typedef TOutputImage OutputImageType;
+  itkStaticConstMacro(ImageDimension, unsigned int,
+                      TInputImage::ImageDimension);
+  typedef double DistanceImagePixelType;
+  typedef Image<DistanceImagePixelType, ImageDimension> DistanceImageType;
+
+  typedef FixedArray< unsigned int, ImageDimension > SuperGridSizeType;
+
+  itkSetMacro(SuperGridSize, SuperGridSizeType);
+  void SetSuperGridSize(unsigned int factor);
+  void SetSuperGridSize(unsigned int i, unsigned int factor);
+
 
 protected:
-  SLICImageFilter() {}
+  SLICImageFilter()
+    {
+      m_SuperGridSize.Fill(10);
+    }
   ~SLICImageFilter() {}
 
   void PrintSelf(std::ostream & os, Indent indent) const ITK_OVERRIDE
@@ -70,6 +88,8 @@ protected:
 private:
   SLICImageFilter(const Self &);    //purposely not implemented
   void operator=(const Self &);     //purposely not implemented
+
+  SuperGridSizeType m_SuperGridSize;
 
 };
 } // end namespace itk
