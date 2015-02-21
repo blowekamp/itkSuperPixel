@@ -24,6 +24,11 @@
 #include "itkShrinkImageFilter.h"
 #include "itkImageRegionConstIteratorWithIndex.h"
 
+#include "itkConstNeighborhoodIterator.h"
+#include "itkNeighborhoodAlgorithm.h"
+
+#include "itkMath.h"
+
 namespace itk
 {
 
@@ -46,17 +51,48 @@ public:
 
   /** Image type information. */
   typedef TInputImage  InputImageType;
+  typedef typename InputImageType::PixelType InputPixelType;
   typedef TOutputImage OutputImageType;
   itkStaticConstMacro(ImageDimension, unsigned int,
                       TInputImage::ImageDimension);
   typedef double DistanceImagePixelType;
   typedef Image<DistanceImagePixelType, ImageDimension> DistanceImageType;
 
+  typedef typename InputImageType::IndexType IndexType;
+  typedef typename InputImageType::PointType PointType;
+  // assume variable length vector right now
+  typedef VariableLengthVector<double> ClusterType;
+
+
   typedef FixedArray< unsigned int, ImageDimension > SuperGridSizeType;
 
   itkSetMacro(SuperGridSize, SuperGridSizeType);
-  void SetSuperGridSize(unsigned int factor);
-  void SetSuperGridSize(unsigned int i, unsigned int factor);
+  void SetSuperGridSize(unsigned int factor)
+    {
+      unsigned int i;
+      for (i = 0; i < ImageDimension; ++i)
+        {
+        if (factor != m_SuperGridSize[i])
+          {
+          break;
+          }
+        }
+      if ( i < ImageDimension )
+        {
+        this->Modified();
+        m_SuperGridSize.Fill(factor);
+        }
+    }
+  void SetSuperGridSize(unsigned int i, unsigned int factor)
+    {
+      if (m_SuperGridSize[i] == factor)
+        {
+        return;
+        }
+
+      this->Modified();
+      m_SuperGridSize[i] = factor;
+    }
 
 
 protected:
@@ -93,8 +129,6 @@ protected:
 
       typedef typename InputImageType::PixelType InputPixelType;
 
-      // assume variable length vector right now
-      typedef VariableLengthVector<double> ClusterType;
 
       itkDebugMacro("Shinking Starting")
       typename InputImageType::Pointer shrunkImage;
@@ -110,40 +144,183 @@ protected:
       }
       itkDebugMacro("Shinking Completed")
 
-      typedef ImageRegionConstIteratorWithIndex<InputImageType> IteratorType;
-      IteratorType it(shrunkImage, shrunkImage->GetBufferedRegion());
-
+      const typename InputImageType::RegionType region = inputImage->GetBufferedRegion();
       const unsigned int numberOfComponents = inputImage->GetNumberOfComponentsPerPixel();
       const unsigned int numberOfClusterComponents = numberOfComponents+ImageDimension;
+
       const size_t numberOfClusters = shrunkImage->GetBufferedRegion().GetNumberOfPixels();
+
       std::vector<ClusterType> clusters;
-      clusters.reserve(numberOfComponents);
+      clusters.reserve(numberOfClusters);
+
+      typedef ImageRegionConstIteratorWithIndex<InputImageType> InputIteratorType;
+      InputIteratorType it(shrunkImage, shrunkImage->GetLargestPossibleRegion());
 
       // Initialize cluster centers
       for(it.GoToBegin(); !it.IsAtEnd(); ++it)
         {
         ClusterType cluster( numberOfClusterComponents );
-        unsigned int i = 0;
-        while(i < numberOfComponents)
+        for(unsigned int i = 0; i < numberOfComponents; ++i)
           {
           cluster[i] = it.Get()[i];
-          ++i;
           }
-        const typename IteratorType::IndexType & idx = it.GetIndex();
-        while( i < numberOfClusterComponents)
+        const IndexType & idx = it.GetIndex();
+        typename InputImageType::PointType pt;
+        shrunkImage->TransformIndexToPhysicalPoint(idx, pt);
+        for(unsigned int i = 0; i < ImageDimension; ++i)
           {
-          cluster[i] = idx[i-numberOfComponents];
-          ++i;
+          cluster[numberOfComponents+i] = pt[i];
           }
         clusters.push_back(cluster);
-        std::cout << "Cluster " << clusters.size()-1 << ": " << cluster << std::endl;
         }
-      itkDebugMacro("Initial Clustering Completed")
+      itkDebugMacro("Initial Clustering Completed");
 
       shrunkImage = ITK_NULLPTR;
 
       // TODO: Move cluster center to lowest gradient position in a 3x
       // neighborhood
+      typename DistanceImageType::Pointer distanceImage = DistanceImageType::New();
+      distanceImage->CopyInformation(outputImage);
+      distanceImage->SetBufferedRegion( region );
+      distanceImage->Allocate();
+
+      NeighborhoodIterator< DistanceImageType > itDistance;
+
+      typename ConstNeighborhoodIterator< InputImageType >::RadiusType searchRadius;
+      for (unsigned int i = 0; i < ImageDimension; ++i)
+        {
+        searchRadius[i] = m_SuperGridSize[i];
+        }
+
+      // deep copy to ensure memory is allocated
+      std::vector<ClusterType> oldClusters(clusters.begin(), clusters.end());
+
+      itkDebugMacro("Entering Main Loop");
+      for(unsigned int loopCnt = 0; loopCnt < 20; ++loopCnt)
+        {
+        itkDebugMacro("Iteration :" << loopCnt);
+        distanceImage->FillBuffer(NumericTraits<DistanceImagePixelType>::max());
+
+        itDistance = NeighborhoodIterator< DistanceImageType >(searchRadius,
+                                                               distanceImage,
+                                                               region);
+
+        const unsigned int neighborhoodSize = itDistance.Size();
+        for (size_t i = 0; i < clusters.size(); ++i)
+          {
+          const ClusterType &cluster = clusters[i];
+          {
+          typename InputImageType::PointType pt;
+          for (unsigned int d = 0; d < ImageDimension; ++d)
+            {
+            pt[d] = cluster[numberOfComponents+d];
+            }
+          //std::cout << "Cluster " << i << "@" << pt <<": " << cluster << std::endl;
+          IndexType idx;
+          inputImage->TransformPhysicalPointToIndex(pt, idx);
+          itDistance.SetLocation(idx);
+          }
+
+          for (unsigned int n = 0; n < neighborhoodSize; ++n)
+            {
+            const IndexType &idx = itDistance.GetIndex(n);
+            if (region.IsInside(idx))
+              {
+              typename InputImageType::PointType pt;
+              inputImage->TransformIndexToPhysicalPoint(idx, pt);
+              const double distance = this->Distance(clusters[i],
+                                                     inputImage->GetPixel(idx),
+                                                     pt);
+              if (distance < itDistance.GetPixel(n) )
+                {
+                itDistance.SetPixel(n, distance);
+                outputImage->SetPixel(idx, i);
+                }
+              }
+            }
+
+          // for neighborhood iterator size S
+          }
+
+        // clear
+        swap(clusters, oldClusters);
+        for (size_t i = 0; i < clusters.size(); ++i)
+          {
+          ClusterType &cluster = clusters[i];
+          cluster.Fill(0.0);
+          }
+
+        std::vector<size_t> clusterCount(clusters.size(), 0);
+
+        itkDebugMacro("Estimating Centers");
+        // calculate new centers
+        typedef ImageRegionIteratorWithIndex<OutputImageType> OutputIteratorType;
+        OutputIteratorType itOut = OutputIteratorType(outputImage, region);
+        InputIteratorType itIn = InputIteratorType(inputImage, region);
+        while(!itOut.IsAtEnd())
+          {
+          const IndexType &idx = itOut.GetIndex();
+          const InputPixelType &v = itIn.Get();
+          const typename OutputImageType::PixelType l = itOut.Get();
+
+          ClusterType &cluster = clusters[l];
+          ++clusterCount[l];
+
+          for(unsigned int i = 0; i < numberOfComponents; ++i)
+            {
+            cluster[i] += v[i];
+            }
+
+          typename InputImageType::PointType pt;
+          inputImage->TransformIndexToPhysicalPoint(idx, pt);
+          for(unsigned int i = 0; i < ImageDimension; ++i)
+            {
+            cluster[numberOfComponents+i] += pt[i];
+            }
+
+          ++itIn;
+          ++itOut;
+          }
+
+        // average, l1
+        double l1Residual = 0.0;
+        for (size_t i = 0; i < clusters.size(); ++i)
+          {
+          ClusterType &cluster = clusters[i];
+          cluster /= clusterCount[i];
+
+          const ClusterType &oldCluster = oldClusters[i];
+          for(unsigned j = 0; j < numberOfClusterComponents; ++j)
+            {
+            l1Residual += std::abs(cluster[j]-oldCluster[j]);
+            }
+          }
+        std::cout << "L1 residual: " << l1Residual << std::endl;
+        // while error <= threshold
+        }
+    }
+
+  double Distance(const ClusterType &cluster, const InputPixelType &v, const PointType &pt)
+    {
+      const unsigned int s = cluster.GetSize();
+      double d1 = 0.0;
+      double d2 = 0.0;
+      unsigned int i = 0;
+      for (; i < s-ImageDimension; ++i)
+        {
+        const double d = (cluster[i] - v[i]);
+        d1 += d*d;
+        }
+      d1 = std::sqrt(d1);
+
+      for (unsigned int j = 0; j < ImageDimension; ++j)
+        {
+        const double d = (10.0/ std::pow((double)m_SuperGridSize[j], 1.0/ImageDimension))*(cluster[i] - pt[j]);
+        d2 += d*d;
+        ++i;
+        }
+      d2 = std::sqrt(d2);
+      return d1+d2;
     }
 
 private:
