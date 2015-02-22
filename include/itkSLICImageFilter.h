@@ -65,6 +65,12 @@ public:
 
   typedef FixedArray< unsigned int, ImageDimension > SuperGridSizeType;
 
+  itkSetMacro( SpatialProximityWeight, double );
+  itkGetConstMacro( SpatialProximityWeight, double );
+
+  itkSetMacro( MaximumNumberOfIterations, unsigned int );
+  itkGetConstMacro( MaximumNumberOfIterations, unsigned int );
+
   itkSetMacro(SuperGridSize, SuperGridSizeType);
   void SetSuperGridSize(unsigned int factor)
     {
@@ -97,7 +103,9 @@ public:
 protected:
   SLICImageFilter()
     {
-      m_SuperGridSize.Fill(10);
+      m_SuperGridSize.Fill(50);
+      m_MaximumNumberOfIterations = (ImageDimension > 2) ? 5 : 10;
+      m_SpatialProximityWeight = 10.0;
     }
   ~SLICImageFilter() {}
 
@@ -197,13 +205,16 @@ protected:
       for (unsigned int i = 0; i < ImageDimension; ++i)
         {
         searchRadius[i] = m_SuperGridSize[i];
+        m_DistanceScales[i] = m_SpatialProximityWeight/m_SuperGridSize[i];
         }
+
+
 
       // deep copy to ensure memory is allocated
       std::vector<ClusterType> oldClusters(clusters.begin(), clusters.end());
 
       itkDebugMacro("Entering Main Loop");
-      for(unsigned int loopCnt = 0; loopCnt < 5; ++loopCnt)
+      for(unsigned int loopCnt = 0;  loopCnt<m_MaximumNumberOfIterations; ++loopCnt)
         {
         itkDebugMacro("Iteration :" << loopCnt);
         distanceImage->FillBuffer(NumericTraits<DistanceImagePixelType>::max());
@@ -333,20 +344,20 @@ protected:
       double d1 = 0.0;
       double d2 = 0.0;
       unsigned int i = 0;
-      for (; i < s-ImageDimension; ++i)
+      for (; i<s-ImageDimension; ++i)
         {
         const double d = (cluster[i] - v[i]);
         d1 += d*d;
         }
-      d1 = std::sqrt(d1);
+      //d1 = std::sqrt(d1);
 
       for (unsigned int j = 0; j < ImageDimension; ++j)
         {
-        const double d = (10.0/ std::pow((double)m_SuperGridSize[j], 1.0/ImageDimension))*(cluster[i] - pt[j]);
+        const double d = (cluster[i] - pt[j]) * m_DistanceScales[j];
         d2 += d*d;
         ++i;
         }
-      d2 = std::sqrt(d2);
+      //d2 = std::sqrt(d2);
       return d1+d2;
     }
 
@@ -355,7 +366,9 @@ private:
   void operator=(const Self &);     //purposely not implemented
 
   SuperGridSizeType m_SuperGridSize;
-
+  unsigned int m_MaximumNumberOfIterations;
+  FixedArray<double,ImageDimension> m_DistanceScales;
+  double m_SpatialProximityWeight;
 };
 } // end namespace itk
 
