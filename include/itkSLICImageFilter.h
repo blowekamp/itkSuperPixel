@@ -22,10 +22,9 @@
 #include "itkVariableLengthVector.h"
 
 #include "itkShrinkImageFilter.h"
-#include "itkImageRegionConstIteratorWithIndex.h"
 
-#include "itkConstNeighborhoodIterator.h"
-#include "itkNeighborhoodAlgorithm.h"
+#include "itkImageRegionConstIteratorWithIndex.h"
+#include "itkImageScanlineIterator.h"
 
 #include "itkMath.h"
 
@@ -184,9 +183,8 @@ protected:
       distanceImage->SetBufferedRegion( region );
       distanceImage->Allocate();
 
-      NeighborhoodIterator< DistanceImageType > itDistance;
 
-      typename ConstNeighborhoodIterator< InputImageType >::RadiusType searchRadius;
+      typename InputImageType::SizeType searchRadius;
       for (unsigned int i = 0; i < ImageDimension; ++i)
         {
         searchRadius[i] = m_SuperGridSize[i];
@@ -196,47 +194,64 @@ protected:
       std::vector<ClusterType> oldClusters(clusters.begin(), clusters.end());
 
       itkDebugMacro("Entering Main Loop");
-      for(unsigned int loopCnt = 0; loopCnt < 20; ++loopCnt)
+      for(unsigned int loopCnt = 0; loopCnt < 5; ++loopCnt)
         {
         itkDebugMacro("Iteration :" << loopCnt);
         distanceImage->FillBuffer(NumericTraits<DistanceImagePixelType>::max());
 
-        itDistance = NeighborhoodIterator< DistanceImageType >(searchRadius,
-                                                               distanceImage,
-                                                               region);
 
-        const unsigned int neighborhoodSize = itDistance.Size();
         for (size_t i = 0; i < clusters.size(); ++i)
           {
           const ClusterType &cluster = clusters[i];
-          {
+          typename InputImageType::RegionType localRegion;
           typename InputImageType::PointType pt;
+          IndexType idx;
+
           for (unsigned int d = 0; d < ImageDimension; ++d)
             {
             pt[d] = cluster[numberOfComponents+d];
             }
           //std::cout << "Cluster " << i << "@" << pt <<": " << cluster << std::endl;
-          IndexType idx;
           inputImage->TransformPhysicalPointToIndex(pt, idx);
-          itDistance.SetLocation(idx);
-          }
 
-          for (unsigned int n = 0; n < neighborhoodSize; ++n)
+          localRegion.SetIndex(idx);
+          localRegion.GetModifiableSize().Fill(1u);
+          localRegion.PadByRadius(searchRadius);
+          if (!localRegion.Crop(region))
             {
-            const IndexType &idx = itDistance.GetIndex(n);
-            if (region.IsInside(idx))
+            continue;
+            }
+
+
+          typedef ImageScanlineConstIterator< InputImageType > InputConstIteratorType;
+          typedef ImageScanlineIterator< DistanceImageType >     DistanceIteratorType;
+          const size_t         ln =  localRegion.GetSize(0);
+
+          InputConstIteratorType inputIter(inputImage, localRegion);
+          DistanceIteratorType     distanceIter(distanceImage, localRegion);
+
+
+          while ( !inputIter.IsAtEnd() )
+            {
+            for( size_t x = 0; x < ln; ++x )
               {
-              typename InputImageType::PointType pt;
+              const IndexType &idx = inputIter.GetIndex();
+
               inputImage->TransformIndexToPhysicalPoint(idx, pt);
               const double distance = this->Distance(clusters[i],
-                                                     inputImage->GetPixel(idx),
+                                                     inputIter.Get(),
                                                      pt);
-              if (distance < itDistance.GetPixel(n) )
+              if (distance < distanceIter.Get() )
                 {
-                itDistance.SetPixel(n, distance);
+                distanceIter.Set(distance);
                 outputImage->SetPixel(idx, i);
                 }
+
+              ++distanceIter;
+              ++inputIter;
               }
+            inputIter.NextLine();
+            distanceIter.NextLine();
             }
 
           // for neighborhood iterator size S
