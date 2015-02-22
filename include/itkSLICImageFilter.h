@@ -152,26 +152,35 @@ protected:
       std::vector<ClusterType> clusters;
       clusters.reserve(numberOfClusters);
 
-      typedef ImageRegionConstIteratorWithIndex<InputImageType> InputIteratorType;
-      InputIteratorType it(shrunkImage, shrunkImage->GetLargestPossibleRegion());
+      typedef ImageScanlineConstIterator< InputImageType > InputConstIteratorType;
+      typedef ImageScanlineIterator< DistanceImageType >   DistanceIteratorType;
+      typedef ImageScanlineIterator< OutputImageType >     OutputIteratorType;
+
+      InputConstIteratorType it(shrunkImage, shrunkImage->GetLargestPossibleRegion());
 
       // Initialize cluster centers
-      for(it.GoToBegin(); !it.IsAtEnd(); ++it)
-        {
-        ClusterType cluster( numberOfClusterComponents );
-        for(unsigned int i = 0; i < numberOfComponents; ++i)
+      while(!it.IsAtEnd())
           {
-          cluster[i] = it.Get()[i];
+          const size_t         ln =  shrunkImage->GetLargestPossibleRegion().GetSize(0);
+          for (unsigned x = 0; x < ln; ++x)
+            {
+            ClusterType cluster( numberOfClusterComponents );
+            for(unsigned int i = 0; i < numberOfComponents; ++i)
+              {
+              cluster[i] = it.Get()[i];
+              }
+            const IndexType & idx = it.GetIndex();
+            typename InputImageType::PointType pt;
+            shrunkImage->TransformIndexToPhysicalPoint(idx, pt);
+            for(unsigned int i = 0; i < ImageDimension; ++i)
+              {
+              cluster[numberOfComponents+i] = pt[i];
+              }
+            clusters.push_back(cluster);
+            ++it;
+            }
+          it.NextLine();
           }
-        const IndexType & idx = it.GetIndex();
-        typename InputImageType::PointType pt;
-        shrunkImage->TransformIndexToPhysicalPoint(idx, pt);
-        for(unsigned int i = 0; i < ImageDimension; ++i)
-          {
-          cluster[numberOfComponents+i] = pt[i];
-          }
-        clusters.push_back(cluster);
-        }
       itkDebugMacro("Initial Clustering Completed");
 
       shrunkImage = ITK_NULLPTR;
@@ -223,8 +232,6 @@ protected:
             }
 
 
-          typedef ImageScanlineConstIterator< InputImageType > InputConstIteratorType;
-          typedef ImageScanlineIterator< DistanceImageType >     DistanceIteratorType;
           const size_t         ln =  localRegion.GetSize(0);
 
           InputConstIteratorType inputIter(inputImage, localRegion);
@@ -269,32 +276,37 @@ protected:
 
         itkDebugMacro("Estimating Centers");
         // calculate new centers
-        typedef ImageRegionIteratorWithIndex<OutputImageType> OutputIteratorType;
         OutputIteratorType itOut = OutputIteratorType(outputImage, region);
-        InputIteratorType itIn = InputIteratorType(inputImage, region);
+        InputConstIteratorType itIn = InputConstIteratorType(inputImage, region);
         while(!itOut.IsAtEnd())
           {
-          const IndexType &idx = itOut.GetIndex();
-          const InputPixelType &v = itIn.Get();
-          const typename OutputImageType::PixelType l = itOut.Get();
-
-          ClusterType &cluster = clusters[l];
-          ++clusterCount[l];
-
-          for(unsigned int i = 0; i < numberOfComponents; ++i)
+          const size_t         ln =  region.GetSize(0);
+          for (unsigned x = 0; x < ln; ++x)
             {
-            cluster[i] += v[i];
-            }
+            const IndexType &idx = itOut.GetIndex();
+            const InputPixelType &v = itIn.Get();
+            const typename OutputImageType::PixelType l = itOut.Get();
 
-          typename InputImageType::PointType pt;
-          inputImage->TransformIndexToPhysicalPoint(idx, pt);
-          for(unsigned int i = 0; i < ImageDimension; ++i)
-            {
-            cluster[numberOfComponents+i] += pt[i];
-            }
+            ClusterType &cluster = clusters[l];
+            ++clusterCount[l];
 
-          ++itIn;
-          ++itOut;
+            for(unsigned int i = 0; i < numberOfComponents; ++i)
+              {
+              cluster[i] += v[i];
+              }
+
+            typename InputImageType::PointType pt;
+            inputImage->TransformIndexToPhysicalPoint(idx, pt);
+            for(unsigned int i = 0; i < ImageDimension; ++i)
+              {
+              cluster[numberOfComponents+i] += pt[i];
+              }
+
+            ++itIn;
+            ++itOut;
+            }
+          itIn.NextLine();
+          itOut.NextLine();
           }
 
         // average, l1
