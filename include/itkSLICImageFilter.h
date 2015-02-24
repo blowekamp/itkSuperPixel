@@ -33,7 +33,7 @@
 namespace itk
 {
 
-template< typename TInputImage, typename TOutputImage, typename TDistancePixel = float >
+template< typename TInputImage, typename TOutputImage, typename TDistancePixel = float>
 class SLICImageFilter:
     public ImageToImageFilter< TInputImage, TOutputImage >
 {
@@ -109,8 +109,8 @@ private:
   unsigned int m_MaximumNumberOfIterations;
   FixedArray<double,ImageDimension> m_DistanceScales;
   double m_SpatialProximityWeight;
-  std::vector<ClusterType> m_Clusters;
-  std::vector<ClusterType> m_OldClusters;
+  std::vector<ClusterComponentType> m_Clusters;
+  std::vector<ClusterComponentType> m_OldClusters;
 
   typename Barrier::Pointer m_Barrier;
   typename DistanceImageType::Pointer m_DistanceImage;

@@ -136,13 +136,14 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
   }
   itkDebugMacro("Shinking Completed")
 
-    const typename InputImageType::RegionType region = inputImage->GetBufferedRegion();
+  const typename InputImageType::RegionType region = inputImage->GetBufferedRegion();
   const unsigned int numberOfComponents = inputImage->GetNumberOfComponentsPerPixel();
   const unsigned int numberOfClusterComponents = numberOfComponents+ImageDimension;
   const size_t numberOfClusters = shrunkImage->GetBufferedRegion().GetNumberOfPixels();
 
 
-  m_Clusters.reserve(numberOfClusters);
+  // allocate array of scalars
+  m_Clusters.resize(numberOfClusters*numberOfClusterComponents);
 
   typedef ImageScanlineConstIterator< InputImageType > InputConstIteratorType;
 
@@ -150,12 +151,15 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
   InputConstIteratorType it(shrunkImage, shrunkImage->GetLargestPossibleRegion());
 
   // Initialize cluster centers
+  size_t cnt = 0;
   while(!it.IsAtEnd())
     {
     const size_t         ln =  shrunkImage->GetLargestPossibleRegion().GetSize(0);
     for (unsigned x = 0; x < ln; ++x)
       {
-      ClusterType cluster( numberOfClusterComponents );
+      // construct vector as reference to the scalar array
+      ClusterType cluster( &m_Clusters[cnt*numberOfClusterComponents], numberOfClusterComponents );
+
       for(unsigned int i = 0; i < numberOfComponents; ++i)
         {
         cluster[i] = it.Get()[i];
@@ -167,8 +171,8 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
         {
         cluster[numberOfComponents+i] = pt[i];
         }
-      m_Clusters.push_back(cluster);
       ++it;
+      ++cnt;
       }
     it.NextLine();
     }
@@ -192,7 +196,7 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 
 
   // deep copy to ensure memory is allocated
-  std::vector<ClusterType>(m_Clusters.begin(), m_Clusters.end()).swap(m_OldClusters);
+  std::vector<ClusterComponentType>(m_Clusters.begin(), m_Clusters.end()).swap(m_OldClusters);
 
   this->Superclass::BeforeThreadedGenerateData();
 }
@@ -210,6 +214,7 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
   const InputImageType *inputImage = this->GetInput();
   OutputImageType *outputImage = this->GetOutput();
   const unsigned int numberOfComponents = inputImage->GetNumberOfComponentsPerPixel();
+  const unsigned int numberOfClusterComponents = numberOfComponents+ImageDimension;
 
   typename InputImageType::SizeType searchRadius;
   for (unsigned int i = 0; i < ImageDimension; ++i)
@@ -217,9 +222,9 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
     searchRadius[i] = m_SuperGridSize[i];
     }
 
-  for (size_t i = 0; i < m_Clusters.size(); ++i)
+  for (size_t i = 0; i*numberOfClusterComponents < m_Clusters.size(); ++i)
     {
-    const ClusterType &cluster = m_Clusters[i];
+    ClusterType cluster(&m_Clusters[i*numberOfClusterComponents],numberOfClusterComponents);
     typename InputImageType::RegionType localRegion;
     typename InputImageType::PointType pt;
     IndexType idx;
@@ -253,7 +258,7 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
         const IndexType &idx = inputIter.GetIndex();
 
         inputImage->TransformIndexToPhysicalPoint(idx, pt);
-        const double distance = this->Distance(m_Clusters[i],
+        const double distance = this->Distance(cluster,
                                                inputIter.Get(),
                                                pt);
         if (distance < distanceIter.Get() )
@@ -313,14 +318,10 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
       {
       // clear
       swap(m_Clusters, m_OldClusters);
-      for (size_t i = 0; i < m_Clusters.size(); ++i)
-        {
-        ClusterType &cluster = m_Clusters[i];
-        cluster.Fill(0.0);
-        }
+      std::fill(m_Clusters.begin(), m_Clusters.end(), 0.0);
 
 
-      std::vector<size_t> clusterCount(m_Clusters.size(), 0);
+      std::vector<size_t> clusterCount(m_Clusters.size()/numberOfClusterComponents, 0);
       itkDebugMacro("Estimating Centers");
       // calculate new centers
       OutputIteratorType itOut = OutputIteratorType(outputImage, region);
@@ -334,7 +335,7 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
           const InputPixelType &v = itIn.Get();
           const typename OutputImageType::PixelType l = itOut.Get();
 
-          ClusterType &cluster = m_Clusters[l];
+          ClusterType cluster(&m_Clusters[l*numberOfClusterComponents],numberOfClusterComponents);
           ++clusterCount[l];
 
           for(unsigned int i = 0; i < numberOfComponents; ++i)
@@ -358,17 +359,17 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 
       // average, l1
       double l1Residual = 0.0;
-      for (size_t i = 0; i < m_Clusters.size(); ++i)
+      for (size_t i = 0; i*numberOfClusterComponents < m_Clusters.size(); ++i)
         {
-        ClusterType &cluster = m_Clusters[i];
+        ClusterType cluster(&m_Clusters[i*numberOfClusterComponents],numberOfClusterComponents);
         cluster /= clusterCount[i];
 
-        const ClusterType &oldCluster = m_OldClusters[i];
+        ClusterType oldCluster(&m_OldClusters[i*numberOfClusterComponents],numberOfClusterComponents);
         l1Residual += Distance(cluster,oldCluster);
 
         }
 
-      std::cout << "L1 residual: " << l1Residual << std::endl;
+      std::cout << "L1 residual: " << std::sqrt(l1Residual) << std::endl;
       }
     // while error <= threshold
     }
@@ -385,8 +386,8 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 
 
   // cleanup
-  std::vector<ClusterType>().swap(m_Clusters);
-  std::vector<ClusterType>().swap(m_OldClusters);
+  std::vector<ClusterComponentType>().swap(m_Clusters);
+  std::vector<ClusterComponentType>().swap(m_OldClusters);
 }
 
 
