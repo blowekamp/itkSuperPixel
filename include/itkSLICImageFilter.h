@@ -56,13 +56,14 @@ public:
   typedef TOutputImage OutputImageType;
   itkStaticConstMacro(ImageDimension, unsigned int,
                       TInputImage::ImageDimension);
-  typedef TDistancePixel DistanceImagePixelType;
-  typedef Image<DistanceImagePixelType, ImageDimension> DistanceImageType;
+  typedef TDistancePixel                                DistanceType;
+  typedef Image<DistanceType, ImageDimension> DistanceImageType;
 
   typedef typename InputImageType::IndexType IndexType;
   typedef typename InputImageType::PointType PointType;
   // assume variable length vector right now
-  typedef VariableLengthVector<double> ClusterType;
+  typedef TDistancePixel                       ClusterComponentType;
+  typedef VariableLengthVector<TDistancePixel> ClusterType;
 
   typedef typename OutputImageType::RegionType   OutputImageRegionType;
 
@@ -96,9 +97,9 @@ protected:
 
   void AfterThreadedGenerateData() ITK_OVERRIDE;
 
-  double Distance(const ClusterType &cluster1, const ClusterType &cluster2);
+  DistanceType Distance(const ClusterType &cluster1, const ClusterType &cluster2);
 
-  double Distance(const ClusterType &cluster, const InputPixelType &v, const PointType &pt);
+  DistanceType Distance(const ClusterType &cluster, const InputPixelType &v, const PointType &pt);
 
 private:
   SLICImageFilter(const Self &);    //purposely not implemented

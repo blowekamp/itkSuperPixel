@@ -301,7 +301,7 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 
     if (threadId == 0)
       {
-      m_DistanceImage->FillBuffer(NumericTraits<DistanceImagePixelType>::max());
+      m_DistanceImage->FillBuffer(NumericTraits<typename DistanceImageType::PixelType>::max());
       }
     m_Barrier->Wait();
 
@@ -384,9 +384,6 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
   itkDebugMacro("Starting AfterThreadedGenerateData");
 
 
-
-
-
   // cleanup
   std::vector<ClusterType>().swap(m_Clusters);
   std::vector<ClusterType>().swap(m_OldClusters);
@@ -394,24 +391,24 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 
 
 template<typename TInputImage, typename TOutputImage, typename TDistancePixel>
-double
+typename SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>::DistanceType
 SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 ::Distance(const ClusterType &cluster1, const ClusterType &cluster2)
 {
   const unsigned int s = cluster1.GetSize();
-  double d1 = 0.0;
-  double d2 = 0.0;
+  DistanceType d1 = 0.0;
+  DistanceType d2 = 0.0;
   unsigned int i = 0;
   for (; i<s-ImageDimension; ++i)
     {
-    const double d = (cluster1[i] - cluster2[i]);
+    const DistanceType d = (cluster1[i] - cluster2[i]);
     d1 += d*d;
     }
   //d1 = std::sqrt(d1);
 
   for (unsigned int j = 0; j < ImageDimension; ++j)
     {
-    const double d = (cluster1[i] - cluster2[i]) * m_DistanceScales[j];
+    const DistanceType d = (cluster1[i] - cluster2[i]) * m_DistanceScales[j];
     d2 += d*d;
     ++i;
     }
@@ -420,24 +417,24 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 }
 
 template<typename TInputImage, typename TOutputImage, typename TDistancePixel>
-double
+typename SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>::DistanceType
 SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 ::Distance(const ClusterType &cluster, const InputPixelType &v, const PointType &pt)
 {
   const unsigned int s = cluster.GetSize();
-  double d1 = 0.0;
-  double d2 = 0.0;
+  DistanceType d1 = 0.0;
+  DistanceType d2 = 0.0;
   unsigned int i = 0;
   for (; i<s-ImageDimension; ++i)
     {
-    const double d = (cluster[i] - v[i]);
+    const DistanceType d = (cluster[i] - v[i]);
     d1 += d*d;
     }
   //d1 = std::sqrt(d1);
 
   for (unsigned int j = 0; j < ImageDimension; ++j)
     {
-    const double d = (cluster[i] - pt[j]) * m_DistanceScales[j];
+    const DistanceType d = (cluster[i] - pt[j]) * m_DistanceScales[j];
     d2 += d*d;
     ++i;
     }
