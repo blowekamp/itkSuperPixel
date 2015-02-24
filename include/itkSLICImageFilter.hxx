@@ -158,7 +158,7 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
     for (unsigned x = 0; x < ln; ++x)
       {
       // construct vector as reference to the scalar array
-      ClusterType cluster( &m_Clusters[cnt*numberOfClusterComponents], numberOfClusterComponents );
+      ClusterType cluster( numberOfClusterComponents, &m_Clusters[cnt*numberOfClusterComponents] );
 
       for(unsigned int i = 0; i < numberOfComponents; ++i)
         {
@@ -224,7 +224,7 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 
   for (size_t i = 0; i*numberOfClusterComponents < m_Clusters.size(); ++i)
     {
-    ClusterType cluster(&m_Clusters[i*numberOfClusterComponents],numberOfClusterComponents);
+    ClusterType cluster(numberOfClusterComponents, &m_Clusters[i*numberOfClusterComponents]);
     typename InputImageType::RegionType localRegion;
     typename InputImageType::PointType pt;
     IndexType idx;
@@ -335,7 +335,7 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
           const InputPixelType &v = itIn.Get();
           const typename OutputImageType::PixelType l = itOut.Get();
 
-          ClusterType cluster(&m_Clusters[l*numberOfClusterComponents],numberOfClusterComponents);
+          ClusterType cluster(numberOfClusterComponents, &m_Clusters[l*numberOfClusterComponents]);
           ++clusterCount[l];
 
           for(unsigned int i = 0; i < numberOfComponents; ++i)
@@ -361,10 +361,10 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
       double l1Residual = 0.0;
       for (size_t i = 0; i*numberOfClusterComponents < m_Clusters.size(); ++i)
         {
-        ClusterType cluster(&m_Clusters[i*numberOfClusterComponents],numberOfClusterComponents);
+        ClusterType cluster(numberOfClusterComponents,&m_Clusters[i*numberOfClusterComponents]);
         cluster /= clusterCount[i];
 
-        ClusterType oldCluster(&m_OldClusters[i*numberOfClusterComponents],numberOfClusterComponents);
+        ClusterType oldCluster(numberOfClusterComponents, &m_OldClusters[i*numberOfClusterComponents]);
         l1Residual += Distance(cluster,oldCluster);
 
         }
@@ -396,7 +396,7 @@ typename SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>::DistanceTyp
 SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 ::Distance(const ClusterType &cluster1, const ClusterType &cluster2)
 {
-  const unsigned int s = cluster1.GetSize();
+  const unsigned int s = cluster1.size();
   DistanceType d1 = 0.0;
   DistanceType d2 = 0.0;
   unsigned int i = 0;
@@ -422,7 +422,7 @@ typename SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>::DistanceTyp
 SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 ::Distance(const ClusterType &cluster, const InputPixelType &v, const PointType &pt)
 {
-  const unsigned int s = cluster.GetSize();
+  const unsigned int s = cluster.size();
   DistanceType d1 = 0.0;
   DistanceType d2 = 0.0;
   unsigned int i = 0;
