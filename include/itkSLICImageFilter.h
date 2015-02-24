@@ -227,12 +227,84 @@ protected:
     }
 
   void
+  ThreadedUpdateDistanceAndLabel(const OutputImageRegionType & outputRegionForThread, ThreadIdType threadId)
+    {
+      typedef ImageScanlineConstIterator< InputImageType > InputConstIteratorType;
+      typedef ImageScanlineIterator< DistanceImageType >   DistanceIteratorType;
+
+      const InputImageType *inputImage = this->GetInput();
+      OutputImageType *outputImage = this->GetOutput();
+      const unsigned int numberOfComponents = inputImage->GetNumberOfComponentsPerPixel();
+
+      typename InputImageType::SizeType searchRadius;
+      for (unsigned int i = 0; i < ImageDimension; ++i)
+        {
+        searchRadius[i] = m_SuperGridSize[i];
+        }
+
+      for (size_t i = 0; i < m_Clusters.size(); ++i)
+        {
+        const ClusterType &cluster = m_Clusters[i];
+        typename InputImageType::RegionType localRegion;
+        typename InputImageType::PointType pt;
+        IndexType idx;
+
+        for (unsigned int d = 0; d < ImageDimension; ++d)
+          {
+          pt[d] = cluster[numberOfComponents+d];
+          }
+        //std::cout << "Cluster " << i << "@" << pt <<": " << cluster << std::endl;
+        inputImage->TransformPhysicalPointToIndex(pt, idx);
+
+        localRegion.SetIndex(idx);
+        localRegion.GetModifiableSize().Fill(1u);
+        localRegion.PadByRadius(searchRadius);
+        if (!localRegion.Crop(outputRegionForThread))
+          {
+          continue;
+          }
+
+
+        const size_t         ln =  localRegion.GetSize(0);
+
+        InputConstIteratorType inputIter(inputImage, localRegion);
+        DistanceIteratorType   distanceIter(m_DistanceImage, localRegion);
+
+
+        while ( !inputIter.IsAtEnd() )
+          {
+          for( size_t x = 0; x < ln; ++x )
+            {
+            const IndexType &idx = inputIter.GetIndex();
+
+            inputImage->TransformIndexToPhysicalPoint(idx, pt);
+            const double distance = this->Distance(m_Clusters[i],
+                                                   inputIter.Get(),
+                                                   pt);
+            if (distance < distanceIter.Get() )
+              {
+              distanceIter.Set(distance);
+              outputImage->SetPixel(idx, i);
+              }
+
+            ++distanceIter;
+            ++inputIter;
+            }
+          inputIter.NextLine();
+          distanceIter.NextLine();
+          }
+
+        // for neighborhood iterator size S
+        }
+
+    }
+
+  void
   ThreadedGenerateData(const OutputImageRegionType & outputRegionForThread, ThreadIdType threadId)
     {
       typedef typename InputImageType::PixelType InputPixelType;
 
       const InputImageType *inputImage = this->GetInput();
-
       OutputImageType *outputImage = this->GetOutput();
 
       const typename InputImageType::RegionType region = inputImage->GetBufferedRegion();
@@ -243,12 +315,6 @@ protected:
       typedef ImageScanlineIterator< DistanceImageType >   DistanceIteratorType;
       typedef ImageScanlineIterator< OutputImageType >     OutputIteratorType;
 
-
-      typename InputImageType::SizeType searchRadius;
-      for (unsigned int i = 0; i < ImageDimension; ++i)
-        {
-        searchRadius[i] = m_SuperGridSize[i];
-        }
 
       itkDebugMacro("Entering Main Loop");
       for(unsigned int loopCnt = 0;  loopCnt<m_MaximumNumberOfIterations; ++loopCnt)
@@ -261,60 +327,8 @@ protected:
           }
         m_Barrier->Wait();
 
-        for (size_t i = 0; i < m_Clusters.size(); ++i)
-          {
-          const ClusterType &cluster = m_Clusters[i];
-          typename InputImageType::RegionType localRegion;
-          typename InputImageType::PointType pt;
-          IndexType idx;
+        ThreadedUpdateDistanceAndLabel(outputRegionForThread,threadId);
 
-          for (unsigned int d = 0; d < ImageDimension; ++d)
-            {
-            pt[d] = cluster[numberOfComponents+d];
-            }
-          //std::cout << "Cluster " << i << "@" << pt <<": " << cluster << std::endl;
-          inputImage->TransformPhysicalPointToIndex(pt, idx);
-
-          localRegion.SetIndex(idx);
-          localRegion.GetModifiableSize().Fill(1u);
-          localRegion.PadByRadius(searchRadius);
-          if (!localRegion.Crop(outputRegionForThread))
-            {
-            continue;
-            }
-
-
-          const size_t         ln =  localRegion.GetSize(0);
-
-          InputConstIteratorType inputIter(inputImage, localRegion);
-          DistanceIteratorType     distanceIter(m_DistanceImage, localRegion);
-
-
-          while ( !inputIter.IsAtEnd() )
-            {
-            for( size_t x = 0; x < ln; ++x )
-              {
-              const IndexType &idx = inputIter.GetIndex();
-
-              inputImage->TransformIndexToPhysicalPoint(idx, pt);
-              const double distance = this->Distance(m_Clusters[i],
-                                                     inputIter.Get(),
-                                                     pt);
-              if (distance < distanceIter.Get() )
-                {
-                distanceIter.Set(distance);
-                outputImage->SetPixel(idx, i);
-                }
-
-              ++distanceIter;
-              ++inputIter;
-              }
-            inputIter.NextLine();
-            distanceIter.NextLine();
-            }
-
-          // for neighborhood iterator size S
-          }
         m_Barrier->Wait();
 
         if (threadId==0)
