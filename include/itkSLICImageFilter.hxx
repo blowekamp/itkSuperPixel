@@ -80,6 +80,9 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 ::PrintSelf(std::ostream & os, Indent indent) const
 {
   Superclass::PrintSelf(os, indent);
+  os << indent << "SuperGridSize: " << m_SuperGridSize << std::endl;
+  os << indent << "MaximumNumberOfIterations: " << m_MaximumNumberOfIterations << std::endl;
+  os << indent << "SpatialProximityWeight: " << m_SpatialProximityWeight << std::endl;
 }
 
 template<typename TInputImage, typename TOutputImage, typename TDistancePixel>
