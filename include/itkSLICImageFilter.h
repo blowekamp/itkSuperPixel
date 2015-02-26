@@ -93,6 +93,8 @@ protected:
 
   void ThreadedUpdateDistanceAndLabel(const OutputImageRegionType & outputRegionForThread, ThreadIdType threadId);
 
+  void ThreadedUpdateClusters(const OutputImageRegionType & outputRegionForThread, ThreadIdType threadId);
+
   void ThreadedGenerateData(const OutputImageRegionType & outputRegionForThread, ThreadIdType threadId) ITK_OVERRIDE;
 
   void AfterThreadedGenerateData() ITK_OVERRIDE;
@@ -111,6 +113,16 @@ private:
   double m_SpatialProximityWeight;
   std::vector<ClusterComponentType> m_Clusters;
   std::vector<ClusterComponentType> m_OldClusters;
+
+  struct UpdateCluster
+  {
+    size_t count;
+    vnl_vector<ClusterComponentType> cluster;
+  };
+
+  typedef std::map<size_t, UpdateCluster> UpdateClusterMap;
+
+  std::vector<UpdateClusterMap> m_UpdateClusterPerThread;
 
   typename Barrier::Pointer m_Barrier;
   typename DistanceImageType::Pointer m_DistanceImage;

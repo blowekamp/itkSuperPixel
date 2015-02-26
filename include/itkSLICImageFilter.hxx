@@ -144,6 +144,7 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 
   // allocate array of scalars
   m_Clusters.resize(numberOfClusters*numberOfClusterComponents);
+  m_OldClusters.resize(numberOfClusters*numberOfClusterComponents);
 
   typedef ImageScanlineConstIterator< InputImageType > InputConstIteratorType;
 
@@ -195,8 +196,7 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
     }
 
 
-  // deep copy to ensure memory is allocated
-  std::vector<ClusterComponentType>(m_Clusters.begin(), m_Clusters.end()).swap(m_OldClusters);
+  m_UpdateClusterPerThread.resize(numberOfThreads);
 
   this->Superclass::BeforeThreadedGenerateData();
 }
@@ -283,19 +283,74 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 template<typename TInputImage, typename TOutputImage, typename TDistancePixel>
 void
 SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
-::ThreadedGenerateData(const OutputImageRegionType & outputRegionForThread, ThreadIdType threadId)
+::ThreadedUpdateClusters(const OutputImageRegionType & updateRegionForThread, ThreadIdType threadId)
 {
-  typedef typename InputImageType::PixelType InputPixelType;
-
   const InputImageType *inputImage = this->GetInput();
   OutputImageType *outputImage = this->GetOutput();
 
-  const typename InputImageType::RegionType region = inputImage->GetBufferedRegion();
   const unsigned int numberOfComponents = inputImage->GetNumberOfComponentsPerPixel();
   const unsigned int numberOfClusterComponents = numberOfComponents+ImageDimension;
 
   typedef ImageScanlineConstIterator< InputImageType > InputConstIteratorType;
   typedef ImageScanlineIterator< OutputImageType >     OutputIteratorType;
+
+  UpdateClusterMap &clusterMap = m_UpdateClusterPerThread[threadId];
+  clusterMap.clear();
+
+  itkDebugMacro("Estimating Centers");
+  // calculate new centers
+  OutputIteratorType itOut = OutputIteratorType(outputImage, updateRegionForThread);
+  InputConstIteratorType itIn = InputConstIteratorType(inputImage, updateRegionForThread);
+  while(!itOut.IsAtEnd() )
+    {
+    const size_t         ln =  updateRegionForThread.GetSize(0);
+    for (unsigned x = 0; x < ln; ++x)
+      {
+      const IndexType &idx = itOut.GetIndex();
+      const InputPixelType &v = itIn.Get();
+      const typename OutputImageType::PixelType l = itOut.Get();
+
+      std::pair<typename UpdateClusterMap::iterator, bool> r =  clusterMap.insert(std::make_pair(l,UpdateCluster()));
+      vnl_vector<ClusterComponentType> &cluster = r.first->second.cluster;
+      if (r.second)
+        {
+        cluster.set_size(numberOfClusterComponents);
+        cluster.fill(0.0);
+        r.first->second.count = 0;
+        }
+      ++r.first->second.count;
+
+      for(unsigned int i = 0; i < numberOfComponents; ++i)
+        {
+        cluster[i] += v[i];
+        }
+
+      typename InputImageType::PointType pt;
+      inputImage->TransformIndexToPhysicalPoint(idx, pt);
+      for(unsigned int i = 0; i < ImageDimension; ++i)
+        {
+        cluster[numberOfComponents+i] += pt[i];
+        }
+
+      ++itIn;
+      ++itOut;
+      }
+    itIn.NextLine();
+    itOut.NextLine();
+    }
+}
+
+
+template<typename TInputImage, typename TOutputImage, typename TDistancePixel>
+void
+SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
+::ThreadedGenerateData(const OutputImageRegionType & outputRegionForThread, ThreadIdType threadId)
+{
+  const InputImageType *inputImage = this->GetInput();
+
+  const typename InputImageType::RegionType region = inputImage->GetBufferedRegion();
+  const unsigned int numberOfComponents = inputImage->GetNumberOfComponentsPerPixel();
+  const unsigned int numberOfClusterComponents = numberOfComponents+ImageDimension;
 
 
   itkDebugMacro("Entering Main Loop");
@@ -313,53 +368,37 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 
     m_Barrier->Wait();
 
+
+    ThreadedUpdateClusters(outputRegionForThread, threadId);
+
+    m_Barrier->Wait();
+
     if (threadId==0)
       {
-      // clear
+      // prepare to update clusters
       swap(m_Clusters, m_OldClusters);
       std::fill(m_Clusters.begin(), m_Clusters.end(), 0.0);
-
-
       std::vector<size_t> clusterCount(m_Clusters.size()/numberOfClusterComponents, 0);
-      itkDebugMacro("Estimating Centers");
-      // calculate new centers
-      OutputIteratorType itOut = OutputIteratorType(outputImage, region);
-      InputConstIteratorType itIn = InputConstIteratorType(inputImage, region);
-      while(!itOut.IsAtEnd()&& threadId==0)
+
+      // reduce the produce cluster maps per-thread into m_Cluster array
+      for(unsigned int i = 0; i < m_UpdateClusterPerThread.size(); ++i)
         {
-        const size_t         ln =  region.GetSize(0);
-        for (unsigned x = 0; x < ln; ++x)
+        UpdateClusterMap &clusterMap = m_UpdateClusterPerThread[i];
+        for(typename UpdateClusterMap::const_iterator clusterIter = clusterMap.begin(); clusterIter != clusterMap.end(); ++clusterIter)
           {
-          const IndexType &idx = itOut.GetIndex();
-          const InputPixelType &v = itIn.Get();
-          const typename OutputImageType::PixelType l = itOut.Get();
+          const size_t clusterIdx = clusterIter->first;
+          clusterCount[clusterIdx] += clusterIter->second.count;
 
-          ClusterType cluster(numberOfClusterComponents, &m_Clusters[l*numberOfClusterComponents]);
-          ++clusterCount[l];
-
-          for(unsigned int i = 0; i < numberOfComponents; ++i)
-            {
-            cluster[i] += v[i];
-            }
-
-          typename InputImageType::PointType pt;
-          inputImage->TransformIndexToPhysicalPoint(idx, pt);
-          for(unsigned int i = 0; i < ImageDimension; ++i)
-            {
-            cluster[numberOfComponents+i] += pt[i];
-            }
-
-          ++itIn;
-          ++itOut;
+          ClusterType cluster(numberOfClusterComponents, &m_Clusters[clusterIdx*numberOfClusterComponents]);
+          cluster += clusterIter->second.cluster;
           }
-        itIn.NextLine();
-        itOut.NextLine();
         }
 
       // average, l1
       double l1Residual = 0.0;
       for (size_t i = 0; i*numberOfClusterComponents < m_Clusters.size(); ++i)
         {
+
         ClusterType cluster(numberOfClusterComponents,&m_Clusters[i*numberOfClusterComponents]);
         cluster /= clusterCount[i];
 
