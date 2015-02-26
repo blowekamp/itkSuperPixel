@@ -65,7 +65,6 @@ int itkSLICImageFilterTest(int argc, char *argv[])
 
   const unsigned int VDimension = 2;
   typedef itk::VectorImage<float, VDimension> InputImageType;
-  typedef itk::Image<unsigned short, VDimension> OutputImageType;
 
   typedef itk::ImageFileReader<InputImageType> ReaderType;
   ReaderType::Pointer reader = ReaderType::New();

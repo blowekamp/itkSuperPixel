@@ -206,7 +206,7 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 template<typename TInputImage, typename TOutputImage, typename TDistancePixel>
 void
 SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
-::ThreadedUpdateDistanceAndLabel(const OutputImageRegionType & outputRegionForThread, ThreadIdType threadId)
+::ThreadedUpdateDistanceAndLabel(const OutputImageRegionType & outputRegionForThread, ThreadIdType  itkNotUsed(threadId))
 {
   typedef ImageScanlineConstIterator< InputImageType > InputConstIteratorType;
   typedef ImageScanlineIterator< DistanceImageType >   DistanceIteratorType;
@@ -255,16 +255,16 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
       {
       for( size_t x = 0; x < ln; ++x )
         {
-        const IndexType &idx = inputIter.GetIndex();
+        const IndexType &currentIdx = inputIter.GetIndex();
 
-        inputImage->TransformIndexToPhysicalPoint(idx, pt);
+        inputImage->TransformIndexToPhysicalPoint(currentIdx, pt);
         const double distance = this->Distance(cluster,
                                                inputIter.Get(),
                                                pt);
         if (distance < distanceIter.Get() )
           {
           distanceIter.Set(distance);
-          outputImage->SetPixel(idx, i);
+          outputImage->SetPixel(currentIdx, i);
           }
 
         ++distanceIter;
@@ -295,7 +295,6 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
   const unsigned int numberOfClusterComponents = numberOfComponents+ImageDimension;
 
   typedef ImageScanlineConstIterator< InputImageType > InputConstIteratorType;
-  typedef ImageScanlineIterator< DistanceImageType >   DistanceIteratorType;
   typedef ImageScanlineIterator< OutputImageType >     OutputIteratorType;
 
 
