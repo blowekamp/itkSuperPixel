@@ -62,8 +62,8 @@ public:
   typedef typename InputImageType::IndexType IndexType;
   typedef typename InputImageType::PointType PointType;
   // assume variable length vector right now
-  typedef TDistancePixel                       ClusterComponentType;
-  typedef vnl_vector_ref<TDistancePixel> ClusterType;
+  typedef double                         ClusterComponentType;
+  typedef vnl_vector_ref<ClusterComponentType> ClusterType;
 
   typedef typename OutputImageType::RegionType   OutputImageRegionType;
 
