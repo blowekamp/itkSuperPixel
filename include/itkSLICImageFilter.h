@@ -48,21 +48,20 @@ public:
   itkNewMacro(Self);
 
   /** Run-time type information (and related methods). */
-  itkTypeMacro(ExtractImageFilter, ImageToImageFilter);
+  itkTypeMacro(ExtractImageFilter, Ima2geToImageFilter);
 
   /** Image type information. */
-  typedef TInputImage  InputImageType;
-  typedef typename InputImageType::PixelType InputPixelType;
-  typedef TOutputImage OutputImageType;
-  itkStaticConstMacro(ImageDimension, unsigned int,
-                      TInputImage::ImageDimension);
-  typedef TDistancePixel                                DistanceType;
+  typedef TInputImage                         InputImageType;
+  typedef typename InputImageType::PixelType  InputPixelType;
+  typedef TOutputImage                        OutputImageType;
+  itkStaticConstMacro(ImageDimension, unsigned int, TInputImage::ImageDimension);
+  typedef TDistancePixel                      DistanceType;
   typedef Image<DistanceType, ImageDimension> DistanceImageType;
 
   typedef typename InputImageType::IndexType IndexType;
   typedef typename InputImageType::PointType PointType;
   // assume variable length vector right now
-  typedef double                         ClusterComponentType;
+  typedef double                               ClusterComponentType;
   typedef vnl_vector_ref<ClusterComponentType> ClusterType;
 
   typedef typename OutputImageType::RegionType   OutputImageRegionType;
@@ -108,9 +107,10 @@ private:
   void operator=(const Self &);     //purposely not implemented
 
   SuperGridSizeType m_SuperGridSize;
-  unsigned int m_MaximumNumberOfIterations;
+  unsigned int      m_MaximumNumberOfIterations;
+  double            m_SpatialProximityWeight;
+
   FixedArray<double,ImageDimension> m_DistanceScales;
-  double m_SpatialProximityWeight;
   std::vector<ClusterComponentType> m_Clusters;
   std::vector<ClusterComponentType> m_OldClusters;
 
@@ -124,7 +124,7 @@ private:
 
   std::vector<UpdateClusterMap> m_UpdateClusterPerThread;
 
-  typename Barrier::Pointer m_Barrier;
+  typename Barrier::Pointer           m_Barrier;
   typename DistanceImageType::Pointer m_DistanceImage;
 };
 } // end namespace itk

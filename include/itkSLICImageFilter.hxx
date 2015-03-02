@@ -202,7 +202,6 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 }
 
 
-
 template<typename TInputImage, typename TOutputImage, typename TDistancePixel>
 void
 SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
@@ -426,6 +425,10 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
   // cleanup
   std::vector<ClusterComponentType>().swap(m_Clusters);
   std::vector<ClusterComponentType>().swap(m_OldClusters);
+  for(unsigned int i = 0; i < m_UpdateClusterPerThread.size(); ++i)
+    {
+    UpdateClusterMap().swap(m_UpdateClusterPerThread[i]);
+    }
 }
 
 
@@ -480,8 +483,6 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
   //d2 = std::sqrt(d2);
   return d1+d2;
 }
-
-
 
 } // end namespace itk
 

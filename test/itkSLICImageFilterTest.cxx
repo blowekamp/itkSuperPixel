@@ -27,7 +27,7 @@ template<unsigned int Dimension>
 void itkSLICImageFilter(const std::string &inFileName, const std::string &outFileName, const unsigned int gridSize)
 {
 
-typedef itk::VectorImage<float, Dimension> InputImageType;
+typedef itk::VectorImage<float, Dimension>    InputImageType;
 typedef itk::Image<unsigned short, Dimension> OutputImageType;
 
 typedef itk::ImageFileReader<InputImageType> ReaderType;
