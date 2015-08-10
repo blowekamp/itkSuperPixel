@@ -120,10 +120,12 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 
   m_Barrier->Initialize(numberOfThreads);
 
-  const InputImageType *inputImage = this->GetInput();
+  typename InputImageType::Pointer inputImage = InputImageType::New();
+  inputImage->Graft( const_cast<  InputImageType * >( this->GetInput() ));
 
-  itkDebugMacro("Shinking Starting")
-    typename InputImageType::Pointer shrunkImage;
+
+  itkDebugMacro("Shrinking Starting");
+  typename InputImageType::Pointer shrunkImage;
   {
   // todo disconnect input from pipeline
   typedef itk::ShrinkImageFilter<InputImageType, InputImageType> ShrinkImageFilterType;
