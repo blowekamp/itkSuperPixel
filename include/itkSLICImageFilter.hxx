@@ -423,6 +423,7 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 {
   itkDebugMacro("Starting AfterThreadedGenerateData");
 
+  m_DistanceImage = ITK_NULLPTR;
 
   // cleanup
   std::vector<ClusterComponentType>().swap(m_Clusters);
