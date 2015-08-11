@@ -20,6 +20,11 @@
 
 #include "itkSLICImageFilter.h"
 
+#include "itkConstNeighborhoodIterator.h"
+#include "itkImageRegionIterator.h"
+
+
+
 namespace itk
 {
 
@@ -346,6 +351,120 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 template<typename TInputImage, typename TOutputImage, typename TDistancePixel>
 void
 SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
+::ThreadedPerturbClusters(const OutputImageRegionType & outputRegionForThread, ThreadIdType threadId)
+{
+
+  const InputImageType *inputImage = this->GetInput();
+
+  const unsigned int ImageDimension = TInputImage::ImageDimension;
+
+
+  const unsigned int numberOfComponents = inputImage->GetNumberOfComponentsPerPixel();
+  const unsigned int numberOfClusterComponents = numberOfComponents+ImageDimension;
+
+  itk::Size<ImageDimension> radius;
+  radius.Fill( 1 );
+  unsigned long center;
+  unsigned long stride[ImageDimension];
+
+
+  typename InputImageType::SizeType searchRadius;
+  searchRadius.Fill(1);
+
+
+  typedef ConstNeighborhoodIterator< TInputImage > NeighborhoodType;
+
+  // get center and dimension strides for iterator neighborhoods
+  NeighborhoodType it( radius, inputImage, outputRegionForThread );
+  center = it.Size()/2;
+  for ( unsigned int i = 0; i < ImageDimension; ++i )
+    {
+    stride[i] = it.GetStride(i);
+    }
+
+
+  const typename InputImageType::SpacingType spacing = inputImage->GetSpacing();
+
+  typedef typename NumericTraits<InputPixelType>::RealType GradientType;
+  GradientType G;
+
+
+  for (size_t clusterIndex = 0; clusterIndex*numberOfClusterComponents < m_Clusters.size(); ++clusterIndex)
+    {
+    // cluster is a reference to array
+    ClusterType cluster(numberOfClusterComponents, &m_Clusters[clusterIndex*numberOfClusterComponents]);
+    typename InputImageType::RegionType localRegion;
+    typename InputImageType::PointType pt;
+    IndexType idx;
+
+    for (unsigned int d = 0; d < ImageDimension; ++d)
+      {
+      pt[d] = cluster[numberOfComponents+d];
+      }
+    inputImage->TransformPhysicalPointToIndex(pt, idx);
+
+    if (!outputRegionForThread.IsInside(idx))
+      {
+      continue;
+      }
+
+    localRegion.SetIndex(idx);
+    localRegion.GetModifiableSize().Fill(1u);
+    localRegion.PadByRadius(searchRadius);
+
+
+    it.SetRegion( localRegion );
+
+    double minG = NumericTraits<double>::max();
+
+    IndexType minIdx = idx;
+
+    while ( !it.IsAtEnd() )
+      {
+
+      G = it.GetPixel(center + stride[0]);
+      G -= it.GetPixel(center - stride[0]);
+      G /= 2.0*spacing[0];
+
+      for ( unsigned int i = 1; i < ImageDimension; i++ )
+        {
+        GradientType temp = it.GetPixel(center + stride[i]);
+        temp -= it.GetPixel(center - stride[i]);
+        temp /= 2.0*spacing[i];
+        // todo need to square?
+        G += temp;
+        }
+
+      const double gNorm = G.GetSquaredNorm();
+      if ( gNorm < minG)
+        {
+        minG = gNorm;
+        minIdx = it.GetIndex();
+        }
+      ++it;
+      }
+
+    const InputPixelType &v = inputImage->GetPixel(minIdx);
+    for(unsigned int i = 0; i < numberOfComponents; ++i)
+      {
+      cluster[i] = v[i];
+      }
+
+    inputImage->TransformIndexToPhysicalPoint(minIdx, pt);
+    for(unsigned int i = 0; i < ImageDimension; ++i)
+      {
+      cluster[numberOfComponents+i] = pt[i];
+      }
+
+
+    }
+
+}
+
+
+template<typename TInputImage, typename TOutputImage, typename TDistancePixel>
+void
+SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 ::ThreadedGenerateData(const OutputImageRegionType & outputRegionForThread, ThreadIdType threadId)
 {
   const InputImageType *inputImage = this->GetInput();
@@ -354,6 +473,9 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
   const unsigned int numberOfComponents = inputImage->GetNumberOfComponentsPerPixel();
   const unsigned int numberOfClusterComponents = numberOfComponents+ImageDimension;
 
+  itkDebugMacro("Perturb cluster centers");
+  ThreadedPerturbClusters(outputRegionForThread,threadId);
+  m_Barrier->Wait();
 
   itkDebugMacro("Entering Main Loop");
   for(unsigned int loopCnt = 0;  loopCnt<m_MaximumNumberOfIterations; ++loopCnt)
