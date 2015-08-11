@@ -148,8 +148,8 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
   m_Clusters.resize(numberOfClusters*numberOfClusterComponents);
   m_OldClusters.resize(numberOfClusters*numberOfClusterComponents);
 
-  typedef ImageScanlineConstIterator< InputImageType > InputConstIteratorType;
 
+  typedef ImageScanlineConstIterator< InputImageType > InputConstIteratorType;
 
   InputConstIteratorType it(shrunkImage, shrunkImage->GetLargestPossibleRegion());
 
@@ -163,9 +163,10 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
       // construct vector as reference to the scalar array
       ClusterType cluster( numberOfClusterComponents, &m_Clusters[cnt*numberOfClusterComponents] );
 
+      const InputPixelType &v = it.Get();
       for(unsigned int i = 0; i < numberOfComponents; ++i)
         {
-        cluster[i] = it.Get()[i];
+        cluster[i] = v[i];
         }
       const IndexType & idx = it.GetIndex();
       typename InputImageType::PointType pt;
