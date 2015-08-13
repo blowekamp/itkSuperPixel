@@ -1,70 +1,43 @@
+
+This ITK module provides an implimentation of the Simple Linear
+Iterative Clustering (SLIC) superpixel segmentation algorithm. And it
+is planned have more superpixel algoritms.
+
+
 General
-=======
+------
 
-This is a module for [ITK](http://itk.org): The Insight Toolkit for Segmentation and
-Registration. It is designed to work with the ITKv4
-modular system and  to be places it ITK/Modules/External or uses as a
-Remote module.
+This is a module for ITK: The Insight Toolkit for Segmentation and
+Registration. It is designed to work with the ITKv4 modular system and
+to be placed in ITK/Modules/External.
 
-This modular is empty it is just a template to be used as a starting
-point for a module with acutal content.
 
 Getting Started
-===============
-
-The official ITKv4 Wiki documentation on adding an external module is here:
-http://www.itk.org/Wiki/ITK_Release_4/Modularization/Add_an_external_module_(external_module)
-http://www.itk.org/Wiki/ITK/Policy_and_Procedures_for_Adding_Remote_Modules
-
-
-External Module
 ---------------
 
-The following is a breif list of instructions to get a external module
-started in a repository:
+This module should be cloned into the ITK reposiory as a subdirectory
+in the "Modules/External" directory.
 
-mkdir ITK/Modules/External/itkMyModule
-cd ITK/Modules/External/itkMyModule
-git init
-git fetch git@github.com:blowekamp/itkExternalTemplate.git
-git merge FETCH_HEAD
+The following is a brief list of instructions to get a external module
+into ITK:
 
-Remote Module
--------------
+cd ITK/Modules/External/
+git clone https://github.com/blowekamp/itkSuperPixel.git
 
-After a module has been created as a git repository it can be included
-as a remote module, which enables automatic fetching. Add a file in
-"ITK/Modules/Remote" called "YourModule.remote.cmake", for this module
-it would be "ExternalExample.remote.cmake" with the followlowing contents:
+Then configure ITK as not make but set "Module_SuperPixel" to "ON" to
+enable this module. The external module will need to be manually
+updated from the git respository.
 
-itk_fetch_module(ExternalTemplate
-  "A template for a module."
-  GIT_REPOSITORY http://github.com/blowekamp/itkExternalTemplate.git
-  GIT_TAG master
-  )
-
-Editing
--------
-
-The CMakeLists.txt and itk-modules need to be modified with the name
-of the module, something along the following:
-
-sed 's/ExternalTemplate/MyModule/g' CMakeLists.txt itk-module.cmake
-
-There is the inplace option to sed, but it's not portable, so do this
-change by hand or look up the option in sed.
-
-Then hack away at you code in include, src, and tests.
 
 License
-=======
+-------
 
 This software is distributed under the Apache License. Please see
 LICENSE for details.
 
 
 Author
-======
+------
 
 
 Bradley Lowekamp
