@@ -1,8 +1,8 @@
 # the top-level README is used for describing this module, just
 # re-used it for documentation here
 get_filename_component( MY_CURENT_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
-file( READ "${MY_CURENT_DIR}/README" DOCUMENTATION )
-
+set( DOCUMENTATUON "This ITK module provides an implimentation of the Simple Linear
+Iterative Clustering (SLIC) superpixel segmentation algorithm." )
 
 # ITK version 4.5 changed it from EXCLUDE_FROM_ALL to EXCLUDE_FROM_DEFAULT
 set( _EXCLUDE "EXCLUDE_FROM_ALL" )
