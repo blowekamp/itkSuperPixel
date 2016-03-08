@@ -8,5 +8,5 @@ before_install:
 - docker pull insighttoolkit/minimalpathextraction-test
 
 script:
-docker run -v ~/itkSuperPixel:/usr/src/itkSuperPixel -v ~/itkSuperPixel-build:/usr/src/itkSuperPixel-build insighttoolkit/minimalpathextraction-test /usr/src/itkSuperPixel/test/Docker/test.sh
+- docker run -v ~/itkSuperPixel:/usr/src/itkSuperPixel -v ~/itkSuperPixel-build:/usr/src/itkSuperPixel-build insighttoolkit/minimalpathextraction-test /usr/src/itkSuperPixel/test/Docker/test.sh
 
