@@ -1,5 +1,7 @@
 .. image:: https://circleci.com/gh/blowekamp/itkSuperPixel/tree/master.svg?style=svg
     :target: https://circleci.com/gh/blowekamp/itkSuperPixel/tree/master
+.. image:: https://travis-ci.org/blowekamp/itkSuperPixel.svg?branch=master
+    :target: https://travis-ci.org/blowekamp/itkSuperPixel
 
 This ITK module provides an implimentation of the Simple Linear
 Iterative Clustering (SLIC) superpixel segmentation algorithm. And it
