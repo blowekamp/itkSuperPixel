@@ -38,35 +38,41 @@ class SLICImageFilter:
     public ImageToImageFilter< TInputImage, TOutputImage >
 {
 public:
-  /** Standard class typedefs. */
-  typedef SLICImageFilter                                 Self;
-  typedef ImageToImageFilter< TInputImage, TOutputImage > Superclass;
-  typedef SmartPointer< Self >                            Pointer;
-  typedef SmartPointer< const Self >                      ConstPointer;
+  ITK_DISALLOW_COPY_AND_ASSIGN(SLICImageFilter);
+
+  /** Standard class type aliases. */
+  using Self = SLICImageFilter;
+  using Superclass = ImageToImageFilter< TInputImage, TOutputImage >;
+  using Pointer = SmartPointer< Self >;
+  using ConstPointer = SmartPointer< const Self >;
 
   /** Method for creation through the object factory. */
   itkNewMacro(Self);
 
   /** Run-time type information (and related methods). */
-  itkTypeMacro(ExtractImageFilter, Ima2geToImageFilter);
+  itkTypeMacro(SLICImageFilter, ImageToImageFilter);
+
+  /** ImageDimension constants */
+  static constexpr unsigned int ImageDimension = TInputImage::ImageDimension;
+
 
   /** Image type information. */
-  typedef TInputImage                         InputImageType;
-  typedef typename InputImageType::PixelType  InputPixelType;
-  typedef TOutputImage                        OutputImageType;
-  itkStaticConstMacro(ImageDimension, unsigned int, TInputImage::ImageDimension);
-  typedef TDistancePixel                      DistanceType;
-  typedef Image<DistanceType, ImageDimension> DistanceImageType;
+  using InputImageType = TInputImage;
+  using InputPixelType = typename InputImageType::PixelType;
+  using OutputImageType = TOutputImage;
+  using DistanceType = TDistancePixel;
+  using DistanceImageType = Image<DistanceType, ImageDimension>;
 
-  typedef typename InputImageType::IndexType IndexType;
-  typedef typename InputImageType::PointType PointType;
+  using IndexType = typename InputImageType::IndexType;
+  using PointType = typename InputImageType::PointType;
+
   // assume variable length vector right now
-  typedef double                               ClusterComponentType;
-  typedef vnl_vector_ref<ClusterComponentType> ClusterType;
+  using ClusterComponentType = double;
+  using ClusterType = vnl_vector_ref<ClusterComponentType>;
 
-  typedef typename OutputImageType::RegionType   OutputImageRegionType;
+  using OutputImageRegionType = typename OutputImageType::RegionType;
 
-  typedef FixedArray< unsigned int, ImageDimension > SuperGridSizeType;
+  using SuperGridSizeType = FixedArray< unsigned int, ImageDimension >;
 
   itkSetMacro( SpatialProximityWeight, double );
   itkGetConstMacro( SpatialProximityWeight, double );
@@ -83,12 +89,12 @@ protected:
   SLICImageFilter();
   ~SLICImageFilter();
 
-  void PrintSelf(std::ostream & os, Indent indent) const ITK_OVERRIDE;
+  void PrintSelf(std::ostream & os, Indent indent) const override;
 
   /** Generate full output and require full input */
-  void EnlargeOutputRequestedRegion(DataObject *output) ITK_OVERRIDE;
+  void EnlargeOutputRequestedRegion(DataObject *output) override;
 
-  void BeforeThreadedGenerateData() ITK_OVERRIDE;
+  void BeforeThreadedGenerateData() override;
 
   void ThreadedUpdateDistanceAndLabel(const OutputImageRegionType & outputRegionForThread, ThreadIdType threadId);
 
@@ -96,17 +102,15 @@ protected:
 
   void ThreadedPerturbClusters(const OutputImageRegionType & outputRegionForThread, ThreadIdType threadId);
 
-  void ThreadedGenerateData(const OutputImageRegionType & outputRegionForThread, ThreadIdType threadId) ITK_OVERRIDE;
+  void ThreadedGenerateData(const OutputImageRegionType & outputRegionForThread, ThreadIdType threadId) override;
 
-  void AfterThreadedGenerateData() ITK_OVERRIDE;
+  void AfterThreadedGenerateData() override;
 
   DistanceType Distance(const ClusterType &cluster1, const ClusterType &cluster2);
 
   DistanceType Distance(const ClusterType &cluster, const InputPixelType &v, const PointType &pt);
 
 private:
-  SLICImageFilter(const Self &);    //purposely not implemented
-  void operator=(const Self &);     //purposely not implemented
 
   SuperGridSizeType m_SuperGridSize;
   unsigned int      m_MaximumNumberOfIterations;

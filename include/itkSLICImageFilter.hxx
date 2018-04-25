@@ -103,17 +103,17 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 template<typename TInputImage, typename TOutputImage, typename TDistancePixel>
 void
 SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
-::BeforeThreadedGenerateData() ITK_OVERRIDE
+::BeforeThreadedGenerateData()
 {
   itkDebugMacro("Starting BeforeThreadedGenerateData");
 
 
   ThreadIdType numberOfThreads = this->GetNumberOfThreads();
 
-  if ( itk::MultiThreader::GetGlobalMaximumNumberOfThreads() != 0 )
+  if ( ProcessObject::MultiThreaderType::GetGlobalMaximumNumberOfThreads() != 0 )
     {
     numberOfThreads = vnl_math_min(
-      this->GetNumberOfThreads(), itk::MultiThreader::GetGlobalMaximumNumberOfThreads() );
+      this->GetNumberOfThreads(), ProcessObject::MultiThreaderType::GetGlobalMaximumNumberOfThreads() );
     }
 
   // number of threads can be constrained by the region size, so call the
@@ -542,7 +542,7 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 template<typename TInputImage, typename TOutputImage, typename TDistancePixel>
 void
 SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
-::AfterThreadedGenerateData() ITK_OVERRIDE
+::AfterThreadedGenerateData()
 {
   itkDebugMacro("Starting AfterThreadedGenerateData");
 
