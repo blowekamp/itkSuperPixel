@@ -23,6 +23,14 @@
 #include "itkConstNeighborhoodIterator.h"
 #include "itkImageRegionIterator.h"
 
+#include "itkImageRegionConstIteratorWithIndex.h"
+#include "itkImageScanlineIterator.h"
+
+#include "itkShrinkImageFilter.h"
+
+#include "itkVariableLengthVector.h"
+
+#include "itkMath.h"
 
 
 namespace itk

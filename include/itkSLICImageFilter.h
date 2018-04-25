@@ -19,16 +19,9 @@
 #define itkSLICImageFilter_h
 
 #include "itkImageToImageFilter.h"
-#include "itkVariableLengthVector.h"
 
-#include "itkShrinkImageFilter.h"
 #include "itkBarrier.h"
 
-
-#include "itkImageRegionConstIteratorWithIndex.h"
-#include "itkImageScanlineIterator.h"
-
-#include "itkMath.h"
 
 namespace itk
 {
