@@ -140,7 +140,6 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
   itkDebugMacro("Shrinking Starting");
   typename InputImageType::Pointer shrunkImage;
   {
-  // todo disconnect input from pipeline
   typedef itk::ShrinkImageFilter<InputImageType, InputImageType> ShrinkImageFilterType;
   typename ShrinkImageFilterType::Pointer shrinker = ShrinkImageFilterType::New();
   shrinker->SetInput(inputImage);
@@ -196,10 +195,6 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
   itkDebugMacro("Initial Clustering Completed");
 
   shrunkImage = ITK_NULLPTR;
-
-  // TODO: Move cluster center to lowest gradient position in a 3x
-  // neighborhood
-
 
   m_DistanceImage = DistanceImageType::New();
   m_DistanceImage->CopyInformation(inputImage);
@@ -359,13 +354,10 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 template<typename TInputImage, typename TOutputImage, typename TDistancePixel>
 void
 SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
-::ThreadedPerturbClusters(const OutputImageRegionType & outputRegionForThread, ThreadIdType threadId)
+::ThreadedPerturbClusters(const OutputImageRegionType & outputRegionForThread, ThreadIdType )
 {
 
   const InputImageType *inputImage = this->GetInput();
-
-  const unsigned int ImageDimension = TInputImage::ImageDimension;
-
 
   const unsigned int numberOfComponents = inputImage->GetNumberOfComponentsPerPixel();
   const unsigned int numberOfClusterComponents = numberOfComponents+ImageDimension;
@@ -395,7 +387,6 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 
   typedef typename NumericTraits<InputPixelType>::RealType GradientType;
   GradientType G;
-
 
   for (size_t clusterIndex = 0; clusterIndex*numberOfClusterComponents < m_Clusters.size(); ++clusterIndex)
     {
@@ -464,9 +455,7 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
       cluster[numberOfComponents+i] = pt[i];
       }
 
-
     }
-
 }
 
 
