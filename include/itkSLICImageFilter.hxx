@@ -175,11 +175,8 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
       // construct vector as reference to the scalar array
       ClusterType cluster( numberOfClusterComponents, &m_Clusters[cnt*numberOfClusterComponents] );
 
-      const InputPixelType &v = it.Get();
-      for(unsigned int i = 0; i < numberOfComponents; ++i)
-        {
-        cluster[i] = v[i];
-        }
+      NumericTraits<InputPixelType>::AssignToArray( it.Get(), cluster );
+
       const IndexType & idx = it.GetIndex();
       typename InputImageType::PointType pt;
       shrunkImage->TransformIndexToPhysicalPoint(idx, pt);
@@ -330,9 +327,10 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
         }
       ++r.first->second.count;
 
+      const typename NumericTraits<InputPixelType>::MeasurementVectorType &mv = v;
       for(unsigned int i = 0; i < numberOfComponents; ++i)
         {
-        cluster[i] += v[i];
+          cluster[i] += mv[i];
         }
 
       typename InputImageType::PointType pt;
@@ -443,11 +441,8 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
       ++it;
       }
 
-    const InputPixelType &v = inputImage->GetPixel(minIdx);
-    for(unsigned int i = 0; i < numberOfComponents; ++i)
-      {
-      cluster[i] = v[i];
-      }
+
+    NumericTraits<InputPixelType>::AssignToArray( inputImage->GetPixel(minIdx), cluster );
 
     inputImage->TransformIndexToPhysicalPoint(minIdx, pt);
     for(unsigned int i = 0; i < ImageDimension; ++i)
@@ -584,12 +579,13 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 template<typename TInputImage, typename TOutputImage, typename TDistancePixel>
 typename SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>::DistanceType
 SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
-::Distance(const ClusterType &cluster, const InputPixelType &v, const PointType &pt)
+::Distance(const ClusterType &cluster, const InputPixelType &_v, const PointType &pt)
 {
   const unsigned int s = cluster.size();
   DistanceType d1 = 0.0;
   DistanceType d2 = 0.0;
   unsigned int i = 0;
+  const typename NumericTraits<InputPixelType>::MeasurementVectorType &v = _v;
   for (; i<s-ImageDimension; ++i)
     {
     const DistanceType d = (cluster[i] - v[i]);
