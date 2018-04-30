@@ -23,12 +23,14 @@
 
 namespace
 {
-template<unsigned int Dimension>
+template<typename TInputImageType>
 void itkSLICImageFilter(const std::string &inFileName, const std::string &outFileName, const unsigned int gridSize)
 {
 
-typedef itk::VectorImage<float, Dimension>    InputImageType;
+const unsigned int Dimension = TInputImageType::ImageDimension;
+
 typedef itk::Image<unsigned short, Dimension> OutputImageType;
+typedef TInputImageType InputImageType;
 
 typedef itk::ImageFileReader<InputImageType> ReaderType;
 typename ReaderType::Pointer reader = ReaderType::New();
@@ -71,15 +73,32 @@ int itkSLICImageFilterTest(int argc, char *argv[])
   reader->SetFileName(inFileName);
   reader->UpdateOutputInformation();
 
+
+
   const unsigned int Dimension = reader->GetImageIO()->GetNumberOfDimensions();
+  const unsigned int numberOfComponents = reader->GetImageIO()->GetNumberOfComponents();
   switch (Dimension)
   {
     case 1:
     case 2:
-      itkSLICImageFilter<2>(inFileName, outFileName, gridSize);
+      if (numberOfComponents == 1)
+        {
+          itkSLICImageFilter<itk::Image<float,2> >(inFileName, outFileName, gridSize);
+        }
+      else
+        {
+          itkSLICImageFilter<itk::VectorImage<float,2> >(inFileName, outFileName, gridSize);
+        }
       break;
     case 3:
-      itkSLICImageFilter<3>(inFileName, outFileName, gridSize);
+      if (numberOfComponents == 1)
+        {
+          itkSLICImageFilter<itk::Image<float,3> >(inFileName, outFileName, gridSize);
+        }
+      else
+        {
+          itkSLICImageFilter<itk::VectorImage<float,3> >(inFileName, outFileName, gridSize);
+        }
       break;
     default:
       std::cerr << "Unsupported Dimensions: " << Dimension << std::endl;
