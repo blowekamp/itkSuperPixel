@@ -432,8 +432,16 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
         G += temp;
         }
 
-      const double gNorm = G.GetSquaredNorm();
-      if ( gNorm < minG)
+      double gNorm = 0.0;
+
+      const typename NumericTraits<InputPixelType>::MeasurementVectorType &vG = G;
+      for ( unsigned int i = 0; i < numberOfComponents; ++i )
+        {
+        gNorm += vG[i]*vG[i];
+        }
+
+
+      if ( gNorm < minG )
         {
         minG = gNorm;
         minIdx = it.GetIndex();
