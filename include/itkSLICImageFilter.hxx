@@ -41,7 +41,8 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 ::SLICImageFilter()
   : m_MaximumNumberOfIterations( (ImageDimension > 2) ? 5 : 10),
     m_SpatialProximityWeight( 10.0 ),
-    m_Barrier(Barrier::New())
+    m_Barrier(Barrier::New()),
+    m_EnforceConnectivity(true)
 {
   m_SuperGridSize.Fill(50);
 }
@@ -465,6 +466,16 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 template<typename TInputImage, typename TOutputImage, typename TDistancePixel>
 void
 SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
+::ThreadedConnectivity(const OutputImageRegionType & outputRegionForThread, ThreadIdType threadId )
+{
+
+  itkDebugMacro("Threaded Connectivity");
+
+}
+
+template<typename TInputImage, typename TOutputImage, typename TDistancePixel>
+void
+SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 ::ThreadedGenerateData(const OutputImageRegionType & outputRegionForThread, ThreadIdType threadId)
 {
   const InputImageType *inputImage = this->GetInput();
@@ -537,6 +548,16 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
     }
 
 
+  if (m_EnforceConnectivity)
+    {
+    m_DistanceImage->FillBuffer(0.0);
+
+    m_Barrier->Wait();
+
+    ThreadedConnectivity(outputRegionForThread, threadId);
+    }
+
+  m_Barrier->Wait();
 }
 
 template<typename TInputImage, typename TOutputImage, typename TDistancePixel>

@@ -77,6 +77,10 @@ public:
   void SetSuperGridSize(unsigned int factor);
   void SetSuperGridSize(unsigned int i, unsigned int factor);
 
+  itkSetMacro(EnforceConnectivity, bool);
+  itkGetMacro(EnforceConnectivity, bool);
+  itkBooleanMacro(EnforceConnectivity);
+
 
 protected:
   SLICImageFilter();
@@ -95,7 +99,11 @@ protected:
 
   void ThreadedPerturbClusters(const OutputImageRegionType & outputRegionForThread, ThreadIdType threadId);
 
+  void ThreadedConnectivity(const OutputImageRegionType & outputRegionForThread, ThreadIdType threadId);
+
   void ThreadedGenerateData(const OutputImageRegionType & outputRegionForThread, ThreadIdType threadId) override;
+
+
 
   void AfterThreadedGenerateData() override;
 
@@ -125,6 +133,8 @@ private:
 
   typename Barrier::Pointer           m_Barrier;
   typename DistanceImageType::Pointer m_DistanceImage;
+
+  bool m_EnforceConnectivity;
 };
 } // end namespace itk
 
