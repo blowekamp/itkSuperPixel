@@ -42,7 +42,8 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
   : m_MaximumNumberOfIterations( (ImageDimension > 2) ? 5 : 10),
     m_SpatialProximityWeight( 10.0 ),
     m_Barrier(Barrier::New()),
-    m_EnforceConnectivity(true)
+    m_EnforceConnectivity(true),
+    m_AverageResidual(NumericTraits<double>::max())
 {
   m_SuperGridSize.Fill(50);
 }
@@ -137,6 +138,8 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
   typename InputImageType::Pointer inputImage = InputImageType::New();
   inputImage->Graft( const_cast<  InputImageType * >( this->GetInput() ));
 
+
+  m_AverageResidual = NumericTraits<double>::max();
 
   itkDebugMacro("Shrinking Starting");
   typename InputImageType::Pointer shrunkImage;
@@ -542,8 +545,11 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 
         }
 
-      std::cout << "L1 residual: " << std::sqrt(l1Residual) << std::endl;
+      m_AverageResidual = std::sqrt(l1Residual)/ m_Clusters.size();
+      this->InvokeEvent( IterationEvent() );
       }
+
+
     // while error <= threshold
     }
 

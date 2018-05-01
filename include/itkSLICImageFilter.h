@@ -82,6 +82,14 @@ public:
   itkBooleanMacro(EnforceConnectivity);
 
 
+  /* Get the current average cluster residual.
+   *
+   * After each iteration the residual is computed as the distance
+   * between the current clusters and the previous. This is averaged
+   * so that the value is independent of the number of clusters.
+   */
+  itkGetConstMacro( AverageResidual, double );
+
 protected:
   SLICImageFilter();
   ~SLICImageFilter();
@@ -135,6 +143,8 @@ private:
   typename DistanceImageType::Pointer m_DistanceImage;
 
   bool m_EnforceConnectivity;
+
+  double m_AverageResidual;
 };
 } // end namespace itk
 

@@ -21,8 +21,26 @@
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
 
+#include "itkCommand.h"
+
 namespace
 {
+
+template <typename TFilterType>
+void iterationEventCallback( itk::Object * object, const itk::EventObject & event, void*)
+{
+static unsigned int iterationCount = 0;
+const TFilterType *slicFilter = dynamic_cast<const TFilterType *>(object);
+if( ! itk::IterationEvent().CheckEvent( &event ) ||  !slicFilter )
+  {
+return;
+}
+
+std::cout << "Iterations #: " << iterationCount++ << " Average Residual: " << slicFilter->GetAverageResidual() << std::endl;
+
+}
+
+
 template<typename TInputImageType>
 void itkSLICImageFilter(const std::string &inFileName, const std::string &outFileName, const unsigned int gridSize)
 {
@@ -41,6 +59,13 @@ typename FilterType::Pointer filter = FilterType::New();
 filter->SetInput(reader->GetOutput());
 filter->SetSuperGridSize(gridSize);
 filter->DebugOn();
+
+
+itk::CStyleCommand::Pointer command = itk::CStyleCommand::New();
+command->SetCallback( iterationEventCallback<FilterType> );
+
+filter->AddObserver( itk::IterationEvent(), command );
+
 
 typedef itk::ImageFileWriter<OutputImageType> WriterType;
 typename WriterType::Pointer writer = WriterType::New();
