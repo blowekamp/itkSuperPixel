@@ -1,14 +1,7 @@
 # the top-level README is used for describing this module, just
 # re-used it for documentation here
-get_filename_component( MY_CURENT_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
-set( DOCUMENTATUON "This ITK module provides an implimentation of the Simple Linear
-Iterative Clustering (SLIC) superpixel segmentation algorithm." )
-
-# ITK version 4.5 changed it from EXCLUDE_FROM_ALL to EXCLUDE_FROM_DEFAULT
-set( _EXCLUDE "EXCLUDE_FROM_ALL" )
-if (NOT "${ITK_VERSION_MAJOR}.${ITK_VERSION_MINOR}.${ITK_VERSION_MINOR_PATCH}" VERSION_LESS "4.5")
-  set( _EXCLUDE "EXCLUDE_FROM_DEFAULT" )
-endif()
+get_filename_component(MY_CURRENT_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+file(READ "${MY_CURRENT_DIR}/README.rst" DOCUMENTATION)
 
 # itk_module() defines the module dependencies in SuperPixel
 # SuperPixel depends on ITKCommon
@@ -21,11 +14,14 @@ endif()
 itk_module(SuperPixel
   DEPENDS
     ITKCommon
-    ITKImageGrid
+    ITKStatistics
+  COMPILE_DEPENDS
+    ITKImageSources
   TEST_DEPENDS
     ITKTestKernel
     ITKMetaIO
   DESCRIPTION
     "${DOCUMENTATION}"
-  ${_EXCLUDE}
+  EXCLUDE_FROM_DEFAULT
+  ENABLE_SHARED
 )

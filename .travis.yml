@@ -1,13 +1,15 @@
-sudo: required
-
-services:
-  - docker
-
-before_install:
-- docker info
-- docker pull insighttoolkit/minimalpathextraction-test
-
+sudo: true
+language: cpp
+os:
+- osx
+compiler:
+- gcc
+cache:
+  directories:
+    - "$HOME/Library/Caches/Homebrew"
 script:
-- mkdir ../itkSuperPixel-build
-- docker run -v ./:/usr/src/itkSuperPixel -v ../itkSuperPixel-build:/usr/src/itkSuperPixel-build insighttoolkit/minimalpathextraction-test ./test/Docker/test.sh
-
+- curl -L https://rawgit.com/InsightSoftwareConsortium/ITKPythonPackage/master/scripts/macpython-download-cache-and-build-module-wheels.sh -O
+- chmod u+x macpython-download-cache-and-build-module-wheels.sh
+- ./macpython-download-cache-and-build-module-wheels.sh
+- tar -zcvf dist.tar.gz dist/
+- curl -F file="@dist.tar.gz" https://file.io
