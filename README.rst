@@ -1,11 +1,11 @@
 itkSuperPixel
 =================================
 
-.. |CircleCI| image:: https://circleci.com/gh/InsightSoftwareConsortium/itkSuperPixel.svg?style=shield
-    :target: https://circleci.com/gh/InsightSoftwareConsortium/itkSuperPixel
+.. |CircleCI| image:: https://circleci.com/gh/blowekamp/itkSuperPixel.svg?style=shield
+    :target: https://circleci.com/gh/blowekamp/itkSuperPixel
 
-.. |TravisCI| image:: https://travis-ci.org/InsightSoftwareConsortium/itkSuperPixel.svg?branch=master
-    :target: https://travis-ci.org/InsightSoftwareConsortium/itkSuperPixel
+.. |TravisCI| image:: https://travis-ci.org/blowekamp/itkSuperPixel.svg?branch=master
+    :target: https://travis-ci.org/blowekamp/itkSuperPixel
 
 .. |AppVeyor| image:: https://img.shields.io/appveyor/ci/blowekamp/itksuperpixel.svg
     :target: https://ci.appveyor.com/project/blowekamp/itksuperpixel
