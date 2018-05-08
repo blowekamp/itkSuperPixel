@@ -15,6 +15,7 @@ itk_module(SuperPixel
   DEPENDS
     ITKCommon
     ITKStatistics
+    ITKImageGrid
   COMPILE_DEPENDS
     ITKImageSources
   TEST_DEPENDS
