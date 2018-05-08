@@ -25,6 +25,8 @@
 
 #include "itkImageRegionConstIteratorWithIndex.h"
 #include "itkImageScanlineIterator.h"
+#include "itkShapedNeighborhoodIterator.h"
+#include "itkConstantBoundaryCondition.h"
 
 #include "itkShrinkImageFilter.h"
 
@@ -474,6 +476,166 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 
   itkDebugMacro("Threaded Connectivity");
 
+  const InputImageType *inputImage = this->GetInput();
+  OutputImageType *outputImage = this->GetOutput();
+  const unsigned int numberOfComponents = inputImage->GetNumberOfComponentsPerPixel();
+  const unsigned int numberOfClusterComponents = numberOfComponents+ImageDimension;
+
+  const size_t minSuperSize = std::accumulate( m_SuperGridSize.Begin(), m_SuperGridSize.End(), size_t(1), std::multiplies<size_t>() )/4;
+
+  ConstantBoundaryCondition< TOutputImage > lbc;
+  lbc.SetConstant( NumericTraits<  typename OutputImageType::PixelType >::max() );
+
+  itk::Size<ImageDimension> radius;
+  radius.Fill( 1 );
+
+  typedef ConstNeighborhoodIterator< TOutputImage,  ConstantBoundaryCondition< TOutputImage > > NeighborhoodType;
+
+//  typedef NeighborhoodIterator< MarkerImageType >   MarkerNeighborhoodType;
+//  MarkerNeighborhoodType   markerIter(radius, m_MarkerImage, outputRegionForThread);
+
+  std::vector< IndexType > indexStack;
+
+  for (unsigned int j = 0; j < ImageDimension; ++j)
+    {
+    radius[j] = m_SuperGridSize[j]/2;
+    }
+
+  // get center and dimension strides for iterator neighborhoods
+  NeighborhoodType searchLabelIt( radius, outputImage, outputRegionForThread );
+  searchLabelIt.OverrideBoundaryCondition(&lbc);
+
+
+  for (size_t i = 0; i*numberOfClusterComponents < m_Clusters.size(); ++i)
+    {
+    ClusterType cluster(numberOfClusterComponents, &m_Clusters[i*numberOfClusterComponents]);
+    typename InputImageType::RegionType localRegion;
+    typename InputImageType::PointType pt;
+    IndexType idx;
+
+    for (unsigned int d = 0; d < ImageDimension; ++d)
+      {
+      pt[d] = cluster[numberOfComponents+d];
+      }
+    inputImage->TransformPhysicalPointToIndex(pt, idx);
+
+    if (!outputRegionForThread.IsInside(idx))
+      {
+      continue;
+      }
+
+    if (threadId == 0 )
+      {
+      // std::cout << "Cluster " << i
+      //           << "@" << pt <<": " << cluster
+      //           << " " << outputImage->GetPixel(idx)
+      //           << std::endl;
+      }
+
+
+    if( outputImage->GetPixel(idx) != i )
+      {
+      itkDebugMacro("Searching for cluster: " << i << " near idx: " << idx);
+
+      searchLabelIt.SetLocation(idx);
+      size_t n = 0;
+      for (; n <  searchLabelIt.Size(); ++n )
+        {
+        if ( searchLabelIt.GetPixel(n) == i )
+          {
+          idx =  searchLabelIt.GetIndex(n);
+
+          itkDebugMacro("Non-Center does  match Id. @: " << idx << " for: " << i );
+          break;
+          }
+        }
+
+      if ( n >=  searchLabelIt.Size() )
+        {
+        itkWarningMacro("Failed to find cluster: " << i << " in super grid size neighborhood!");
+        continue;
+        }
+      }
+
+    this->RelabelConnectedRegion( idx, i, i, indexStack );
+
+    if (indexStack.size() < minSuperSize)
+      {
+      //std::cout << "\tLabel is too small: " << indexStack.size() << std::endl;
+      // The connected Superpixel is too small, so demark the marker image
+      for ( size_t indexStackDelabel = 0; indexStackDelabel < indexStack.size(); ++indexStackDelabel )
+        {
+        m_MarkerImage->SetPixel(indexStack[indexStackDelabel], 0);
+        }
+      }
+
+    }
+
+  m_Barrier->Wait();
+
+  OutputPixelType nextLabel = m_Clusters.size()/numberOfClusterComponents;
+  OutputPixelType prevLabel = m_Clusters.size()/numberOfClusterComponents;
+  if (threadId == 0)
+    {
+    // Next we relabel the remaining regions ( defined by having the a
+    // label id ) not connected to the SuperPixel centroids. If the
+    // region is larger than the minimum superpixel size than it gets
+    // a new label, otherwise it just gets the previously encountered
+    // label id.
+
+    typedef ImageScanlineIterator< OutputImageType >   OutputIteratorType;
+    OutputIteratorType outputIter(outputImage, outputImage->GetRequestedRegion());
+
+    typedef ImageScanlineIterator< MarkerImageType >  MarkerIteratorType;
+    MarkerIteratorType markerIter(m_MarkerImage, outputImage->GetRequestedRegion());
+
+
+    while(!markerIter.IsAtEnd())
+      {
+      while (!markerIter.IsAtEndOfLine())
+        {
+        if ( markerIter.Get() == 0 )
+          {
+          // try relabeling the connected component to the next label id
+          this->RelabelConnectedRegion( markerIter.GetIndex(),
+                                        outputIter.Get(),
+                                        nextLabel,
+                                        indexStack );
+
+          if (indexStack.size() >= minSuperSize)
+            {
+            // std::cout << "labing " << outputIter.Get()
+            //           << " -> "  << nextLabel
+            //           << " size: " << indexStack.size() << std::endl;
+            prevLabel = nextLabel++;
+            }
+          else
+            {
+             // std::cout << "+++relabing " << outputIter.Get()
+             //           << " -> "  << prevLabel
+             //           << " size: " << indexStack.size() << std::endl;
+            // new region was too small, just use last valid region.
+            // TODO: on optimal connected region could be chosen for
+            // the set of connected labels
+            for ( size_t indexStackDelabel = 0; indexStackDelabel < indexStack.size(); ++indexStackDelabel )
+              {
+              outputImage->SetPixel(indexStack[indexStackDelabel], prevLabel);
+              }
+            }
+          }
+        else
+          {
+          prevLabel = outputIter.Get();
+          }
+        ++markerIter;
+        ++outputIter;
+        }
+
+      markerIter.NextLine();
+      outputIter.NextLine();
+      }
+    }
+
 }
 
 template<typename TInputImage, typename TOutputImage, typename TDistancePixel>
@@ -556,7 +718,16 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 
   if (m_EnforceConnectivity)
     {
-    m_DistanceImage->FillBuffer(0.0);
+    if (threadId == 0)
+      {
+      m_DistanceImage = ITK_NULLPTR;
+
+      m_MarkerImage = MarkerImageType::New();
+      m_MarkerImage->CopyInformation(inputImage);
+      m_MarkerImage->SetBufferedRegion( region );
+      m_MarkerImage->Allocate();
+      m_MarkerImage->FillBuffer(NumericTraits<typename MarkerImageType::PixelType>::Zero);
+      }
 
     m_Barrier->Wait();
 
@@ -573,7 +744,27 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 {
   itkDebugMacro("Starting AfterThreadedGenerateData");
 
+#if 0
+  if (m_DistanceImage != ITK_NULLPTR)
+    {
+    auto writer = ImageFileWriter<DistanceImageType>::New();
+    writer->SetFileName("distance.mha");
+    writer->SetInput(m_DistanceImage);
+    writer->Update();
+    }
+
+  if (m_MarkerImage != ITK_NULLPTR)
+    {
+    auto writer = ImageFileWriter<MarkerImageType>::New();
+    writer->SetFileName("marker.mha");
+    writer->SetInput(m_MarkerImage);
+    writer->Update();
+    }
+
+#endif
+
   m_DistanceImage = ITK_NULLPTR;
+  m_MarkerImage = ITK_NULLPTR;
 
   // cleanup
   std::vector<ClusterComponentType>().swap(m_Clusters);
@@ -636,6 +827,75 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
     }
   //d2 = std::sqrt(d2);
   return d1+d2;
+}
+
+
+template<typename TInputImage, typename TOutputImage, typename TDistancePixel>
+void
+SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
+::RelabelConnectedRegion( const IndexType &seed,
+                          OutputPixelType requiredLabel,
+                          OutputPixelType outputLabel,
+                          std::vector<IndexType> & indexStack)
+{
+
+  OutputImageType *outputImage = this->GetOutput();
+
+  ConstantBoundaryCondition< TOutputImage > lbc;
+  lbc.SetConstant( NumericTraits<  typename OutputImageType::PixelType >::max() );
+
+  itk::Size<ImageDimension> radius;
+  radius.Fill( 1 );
+  unsigned long center;
+  unsigned long stride[ImageDimension];
+
+  typedef NeighborhoodIterator< TOutputImage,  ConstantBoundaryCondition< TOutputImage > > NeighborhoodType;
+
+  NeighborhoodType labelIt( radius, outputImage, outputImage->GetRequestedRegion() );
+  labelIt.OverrideBoundaryCondition(&lbc);
+
+  center = labelIt.Size()/2;
+  for ( unsigned int j = 0; j < ImageDimension; ++j )
+    {
+    stride[j] = labelIt.GetStride(j);
+    }
+
+  typedef NeighborhoodIterator< MarkerImageType >   MarkerNeighborhoodType;
+  MarkerNeighborhoodType   markerIter(radius, m_MarkerImage, outputImage->GetRequestedRegion() );
+
+  indexStack.clear();
+  indexStack.push_back(seed);
+  m_MarkerImage->SetPixel(seed, 1);
+  outputImage->SetPixel(seed, outputLabel);
+
+  size_t indexStackCount = 0;
+  while( indexStackCount < indexStack.size() )
+    {
+    const IndexType &idx = indexStack[indexStackCount++];
+
+    markerIter.SetLocation(idx);
+    labelIt.SetLocation(idx);
+    for ( unsigned int j = 0; j < ImageDimension; ++j )
+      {
+      unsigned int nIdx = center + stride[j];
+
+      if ( markerIter.GetPixel(nIdx) == 0  &&
+           labelIt.GetPixel(nIdx) == requiredLabel )
+        {
+        indexStack.push_back( labelIt.GetIndex(nIdx));
+        markerIter.SetPixel(nIdx, 1);
+        labelIt.SetPixel(nIdx, outputLabel);
+        }
+      nIdx = center - stride[j];
+      if ( markerIter.GetPixel(nIdx) == 0  &&
+           labelIt.GetPixel(nIdx) == requiredLabel )
+        {
+        indexStack.push_back( labelIt.GetIndex(nIdx));
+        markerIter.SetPixel(nIdx, 1);
+        labelIt.SetPixel(nIdx, outputLabel);
+        }
+      }
+    }
 }
 
 } // end namespace itk

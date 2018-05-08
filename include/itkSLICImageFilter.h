@@ -73,6 +73,7 @@ public:
   using InputImageType = TInputImage;
   using InputPixelType = typename InputImageType::PixelType;
   using OutputImageType = TOutputImage;
+  using OutputPixelType = typename OutputImageType::PixelType;
   using DistanceType = TDistancePixel;
   using DistanceImageType = Image<DistanceType, ImageDimension>;
 
@@ -132,7 +133,6 @@ protected:
   void ThreadedGenerateData(const OutputImageRegionType & outputRegionForThread, ThreadIdType threadId) override;
 
 
-
   void AfterThreadedGenerateData() override;
 
   DistanceType Distance(const ClusterType &cluster1, const ClusterType &cluster2);
@@ -149,18 +149,27 @@ private:
   std::vector<ClusterComponentType> m_Clusters;
   std::vector<ClusterComponentType> m_OldClusters;
 
+
+  void RelabelConnectedRegion( const IndexType &seed,
+                               OutputPixelType requiredLabel,
+                               OutputPixelType outputLabel,
+                               std::vector<IndexType> & indexStack);
+
   struct UpdateCluster
   {
     size_t count;
     vnl_vector<ClusterComponentType> cluster;
   };
 
-  typedef std::map<size_t, UpdateCluster> UpdateClusterMap;
+  using  UpdateClusterMap = std::map<size_t, UpdateCluster>;
+
+  using MarkerImageType = Image<unsigned char, ImageDimension>;
 
   std::vector<UpdateClusterMap> m_UpdateClusterPerThread;
 
   typename Barrier::Pointer           m_Barrier;
   typename DistanceImageType::Pointer m_DistanceImage;
+  typename MarkerImageType::Pointer   m_MarkerImage;
 
   bool m_EnforceConnectivity;
 

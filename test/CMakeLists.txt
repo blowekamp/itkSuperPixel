@@ -26,3 +26,12 @@ itk_add_test(NAME itkSLICImageFilterTest2
     "DATA{Data/Input/VM1111Shrink-LAB.mha}"
     "${ITK_TEST_OUTPUT_DIR}/super2.png" 25 0 )
 
+
+
+itk_add_test(NAME itkSLICImageFilterTest3
+  COMMAND ${itk-module}TestDriver
+    --compare "DATA{Data/Baseline/itkSLICImageFilterTest3.png}"
+              "${ITK_TEST_OUTPUT_DIR}/super3.png"
+  itkSLICImageFilterTest
+    "DATA{Data/Input/VM1111Shrink-LAB.mha}"
+    "${ITK_TEST_OUTPUT_DIR}/super3.png" 25 1)
