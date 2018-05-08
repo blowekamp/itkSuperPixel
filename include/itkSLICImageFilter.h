@@ -26,7 +26,27 @@
 namespace itk
 {
 
-template< typename TInputImage, typename TOutputImage, typename TDistancePixel = float>
+/** \class SLICImageFilter
+ * \brief Simple Linear Iterative Clustering (SLIC) super-pixel segmentation
+ *
+ * The Simple Linear Iterative Clustering (SLIC) algorithm groups
+ * pixels into a set of labeled regions or super-pixels. Super-pixels
+ * follow natural image boundaries, be compact, an nearly uniform
+ * regions which can be use as a larger primitive for more efficient
+ * additional computation.
+ *
+ * The original SLIC algorithm was designed to
+ * cluster on the joint domain of the images index space and it's
+ * CIELAB color space. This implementation can work with arbitrary
+ * dimensional itk::Image and both Images of scalars and most
+ * multi-component image types including the arbitrary length
+ * VectorImage. Additionally, his implementation takes into
+ * consideration the image spacing. For images of blah and blah
+ * parameters blah are recommended.
+ *
+ * \ingroup Segmentation SuperPixel MultiThreading
+ */
+template < typename TInputImage, typename TOutputImage, typename TDistancePixel = float>
 class SLICImageFilter:
     public ImageToImageFilter< TInputImage, TOutputImage >
 {
