@@ -34,6 +34,8 @@
 
 #include "itkMath.h"
 
+#include <numeric>
+
 
 namespace itk
 {
