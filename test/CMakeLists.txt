@@ -35,3 +35,9 @@ itk_add_test(NAME itkSLICImageFilterTest3
   itkSLICImageFilterTest
     "DATA{Data/Input/VM1111Shrink-LAB.mha}"
     "${ITK_TEST_OUTPUT_DIR}/super3.png" 25 1)
+
+
+set(SuperPixelGTests
+  itkSLICImageFilterGTest.cxx)
+
+CreateGoogleTestDriver(${itk-module}  "${${itk-module}-Test_LIBRARIES}" "${${itk-module}GTests}")
