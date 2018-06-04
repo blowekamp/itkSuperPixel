@@ -5,9 +5,6 @@ jobs:
     docker:
       - image: insighttoolkit/module-ci:latest
     steps:
-      - run:
-          command: |
-            env
       - checkout:
           path: /itkSuperPixel
       - run:
