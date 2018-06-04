@@ -32,6 +32,10 @@
 
 #include "itkVariableLengthVector.h"
 
+#if ITK_VERSION_MAJOR >= 5
+#include "itkPlatformMultiThreader.h"
+#endif
+
 #include "itkMath.h"
 
 #include <numeric>
@@ -49,6 +53,10 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
     m_EnforceConnectivity(true),
     m_AverageResidual(NumericTraits<double>::max())
 {
+#if ITK_VERSION_MAJOR >= 5
+  this->DynamicMultiThreadingOff();
+  this->SetMultiThreader(PlatformMultiThreader::New());
+#endif
   m_SuperGridSize.Fill(50);
 }
 
