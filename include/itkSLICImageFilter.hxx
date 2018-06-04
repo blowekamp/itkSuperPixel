@@ -110,6 +110,8 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
   os << indent << "SuperGridSize: " << m_SuperGridSize << std::endl;
   os << indent << "MaximumNumberOfIterations: " << m_MaximumNumberOfIterations << std::endl;
   os << indent << "SpatialProximityWeight: " << m_SpatialProximityWeight << std::endl;
+  os << indent << "EnforceConnectivity: " << m_EnforceConnectivity << std::endl;
+  os << indent << "AverageResidual: " << m_AverageResidual << std::endl;
 }
 
 template<typename TInputImage, typename TOutputImage, typename TDistancePixel>

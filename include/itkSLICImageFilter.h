@@ -95,6 +95,7 @@ public:
   itkGetConstMacro( MaximumNumberOfIterations, unsigned int );
 
   itkSetMacro(SuperGridSize, SuperGridSizeType);
+  itkGetConstMacro(SuperGridSize, SuperGridSizeType);
   void SetSuperGridSize(unsigned int factor);
   void SetSuperGridSize(unsigned int i, unsigned int factor);
 
