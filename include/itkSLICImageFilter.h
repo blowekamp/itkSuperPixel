@@ -79,8 +79,8 @@ public:
 
   using IndexType = typename InputImageType::IndexType;
   using PointType = typename InputImageType::PointType;
+  using ContinuousIndexType = ContinuousIndex<typename PointType::ValueType, ImageDimension>;
 
-  // assume variable length vector right now
   using ClusterComponentType = double;
   using ClusterType = vnl_vector_ref<ClusterComponentType>;
 

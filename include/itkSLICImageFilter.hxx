@@ -186,9 +186,11 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
       const IndexType & idx = it.GetIndex();
       typename InputImageType::PointType pt;
       shrunkImage->TransformIndexToPhysicalPoint(idx, pt);
+      ContinuousIndexType cidx;
+      inputImage->TransformPhysicalPointToContinuousIndex(pt, cidx);
       for(unsigned int i = 0; i < ImageDimension; ++i)
         {
-        cluster[numberOfComponents+i] = pt[i];
+        cluster[numberOfComponents+i] = cidx[i];
         }
       ++it;
       ++cnt;
@@ -244,10 +246,10 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 
     for (unsigned int d = 0; d < ImageDimension; ++d)
       {
-      pt[d] = cluster[numberOfComponents+d];
+      idx[d] = Math::RoundHalfIntegerUp< IndexValueType >(cluster[numberOfComponents+d]);
       }
     //std::cout << "Cluster " << i << "@" << pt <<": " << cluster << std::endl;
-    inputImage->TransformPhysicalPointToIndex(pt, idx);
+    //inputImage->TransformPhysicalPointToIndex(pt, idx);
 
     localRegion.SetIndex(idx);
     localRegion.GetModifiableSize().Fill(1u);
@@ -270,7 +272,8 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
         {
         const IndexType &currentIdx = inputIter.GetIndex();
 
-        inputImage->TransformIndexToPhysicalPoint(currentIdx, pt);
+        //inputImage->TransformIndexToPhysicalPoint(currentIdx, pt);
+        pt = ContinuousIndexType(currentIdx);
         const double distance = this->Distance(cluster,
                                                inputIter.Get(),
                                                pt);
@@ -339,11 +342,12 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
           cluster[i] += mv[i];
         }
 
-      typename InputImageType::PointType pt;
-      inputImage->TransformIndexToPhysicalPoint(idx, pt);
+      //typename InputImageType::PointType pt;
+      //inputImage->TransformIndexToPhysicalPoint(idx, pt);
+      //pt = ContinuousIndexType(idx);
       for(unsigned int i = 0; i < ImageDimension; ++i)
         {
-        cluster[numberOfComponents+i] += pt[i];
+        cluster[numberOfComponents+i] += idx[i];
         }
 
       ++itIn;
@@ -402,9 +406,9 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 
     for (unsigned int d = 0; d < ImageDimension; ++d)
       {
-      pt[d] = cluster[numberOfComponents+d];
+      idx[d] = Math::RoundHalfIntegerUp< IndexValueType >(cluster[numberOfComponents+d]);
       }
-    inputImage->TransformPhysicalPointToIndex(pt, idx);
+    //inputImage->TransformPhysicalPointToIndex(pt, idx);
 
     if (!outputRegionForThread.IsInside(idx))
       {
@@ -458,10 +462,11 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 
     NumericTraits<InputPixelType>::AssignToArray( inputImage->GetPixel(minIdx), cluster );
 
-    inputImage->TransformIndexToPhysicalPoint(minIdx, pt);
+    //inputImage->TransformIndexToPhysicalPoint(minIdx, pt);
+    //pt = ContinuousIndexType(minIdx);
     for(unsigned int i = 0; i < ImageDimension; ++i)
       {
-      cluster[numberOfComponents+i] = pt[i];
+      cluster[numberOfComponents+i] = minIdx[i];
       }
 
     }
@@ -515,21 +520,13 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 
     for (unsigned int d = 0; d < ImageDimension; ++d)
       {
-      pt[d] = cluster[numberOfComponents+d];
+      idx[d] = Math::RoundHalfIntegerUp< IndexValueType >(cluster[numberOfComponents+d]);
       }
-    inputImage->TransformPhysicalPointToIndex(pt, idx);
+    //inputImage->TransformPhysicalPointToIndex(pt, idx);
 
     if (!outputRegionForThread.IsInside(idx))
       {
       continue;
-      }
-
-    if (threadId == 0 )
-      {
-      // std::cout << "Cluster " << i
-      //           << "@" << pt <<": " << cluster
-      //           << " " << outputImage->GetPixel(idx)
-      //           << std::endl;
       }
 
 
