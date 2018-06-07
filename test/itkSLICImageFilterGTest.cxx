@@ -25,6 +25,11 @@
 
 #include "itkCommand.h"
 
+#include "itkImageFileWriter.h"
+
+#include "itkTestDriverIncludeRequiredIOFactories.h"
+#include "itkTestingHashImageFilter.h"
+
 namespace
 {
 
@@ -38,6 +43,32 @@ public:
 
 protected:
 
+  void SetUp() override
+    {
+      RegisterRequiredFactories();
+    }
+
+
+  template<typename TImageType>
+  static void WriteImage(const TImageType * inputImage, const std::string & fileName)
+    {
+      auto writer = itk::ImageFileWriter<TImageType>::New();
+      writer->SetFileName(fileName);
+      writer->SetInput(inputImage);
+      writer->Update();
+    }
+
+  template<typename TImageType>
+  static  std::string MD5Hash(const TImageType *image)
+    {
+
+      using HashFilter = itk::Testing::HashImageFilter<TImageType>;
+      typename HashFilter::Pointer hasher = HashFilter::New();
+      hasher->SetInput( image );
+      hasher->Update();
+      return hasher->GetHash();
+    }
+
   template<unsigned int D, typename TPixelType = unsigned short>
   struct FixtureUtilities
   {
@@ -49,6 +80,22 @@ protected:
     using OutputImageType = itk::Image<OutputPixelType, Dimension>;
 
     using FilterType = itk::SLICImageFilter<InputImageType, OutputImageType>;
+
+    // Create a black image or empty
+    static typename InputImageType::Pointer CreateImage(unsigned int size = 100)
+      {
+        typename InputImageType::Pointer image = InputImageType::New();
+
+        typename InputImageType::SizeType imageSize;
+        imageSize.Fill(size);
+        image->SetRegions(typename InputImageType::RegionType(imageSize));
+        image->Allocate();
+        image->FillBuffer(0);
+
+        return image;
+      }
+
+
   };
 
 };
@@ -88,4 +135,29 @@ TEST_F(SLICFixture, SetGetPrint)
 
   EXPECT_NO_THROW(filter->SetEnforceConnectivity(true));
   EXPECT_TRUE(filter->GetEnforceConnectivity());
+}
+
+TEST_F(SLICFixture, Blank2DImage)
+{
+
+  using namespace itk::GTest::TypedefsAndConstructors::Dimension2;
+  using Utils = FixtureUtilities<2>;
+
+  auto filter = Utils::FilterType::New();
+
+  auto image = Utils::CreateImage(100);
+  filter->SetInput(image);
+
+  filter->SetSuperGridSize(10);
+  filter->Update();
+  EXPECT_EQ("68707adc3df2f7d210b1db96847fc3c5", MD5Hash(filter->GetOutput()));
+
+
+  filter->SetSuperGridSize(1);
+  filter->Update();
+  EXPECT_EQ("c0f89bd80baf367e02bd0c09fd8ba303", MD5Hash(filter->GetOutput()));
+
+  filter->SetSuperGridSize(200);
+  filter->Update();
+  EXPECT_EQ("4e0a293a5b638f0aba2c4fe2c3418d0e", MD5Hash(filter->GetOutput()));
 }
