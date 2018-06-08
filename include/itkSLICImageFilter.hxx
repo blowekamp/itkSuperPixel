@@ -675,8 +675,20 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
   const unsigned int numberOfClusterComponents = numberOfComponents+ImageDimension;
 
   itkDebugMacro("Perturb cluster centers");
-  ThreadedPerturbClusters(outputRegionForThread,threadId);
-  m_Barrier->Wait();
+  bool doPerturbCluster = true;
+  for(unsigned int i= 0; i < ImageDimension; ++i)
+    {
+    if (m_SuperGridSize[i] < 3)
+      {
+      doPerturbCluster = false;
+      break;
+      }
+    }
+  if ( doPerturbCluster )
+    {
+    ThreadedPerturbClusters(outputRegionForThread,threadId);
+    m_Barrier->Wait();
+    }
 
   itkDebugMacro("Entering Main Loop");
   for(unsigned int loopCnt = 0;  loopCnt<m_MaximumNumberOfIterations; ++loopCnt)
