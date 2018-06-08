@@ -374,13 +374,34 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 template<typename TInputImage, typename TOutputImage, typename TDistancePixel>
 void
 SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
-::ThreadedPerturbClusters(const OutputImageRegionType & outputRegionForThread, ThreadIdType )
+::ThreadedPerturbClusters(const OutputImageRegionType & , ThreadIdType id)
 {
 
   const InputImageType *inputImage = this->GetInput();
 
   const unsigned int numberOfComponents = inputImage->GetNumberOfComponentsPerPixel();
   const unsigned int numberOfClusterComponents = numberOfComponents+ImageDimension;
+  const size_t       numberOfClusters = m_Clusters.size()/numberOfClusterComponents;
+
+
+  ThreadIdType numberOfThreads = this->GetNumberOfThreads();
+
+  if ( ProcessObject::MultiThreaderType::GetGlobalMaximumNumberOfThreads() != 0 )
+    {
+    numberOfThreads = vnl_math_min(
+      this->GetNumberOfThreads(), ProcessObject::MultiThreaderType::GetGlobalMaximumNumberOfThreads() );
+    }
+
+  // number of threads can be constrained by the region size, so call the
+  // SplitRequestedRegion to get the real number of threads which will be used
+  typename TOutputImage::RegionType splitRegion;  // dummy region - just to call
+  // the following method
+
+  numberOfThreads = this->SplitRequestedRegion(0, numberOfThreads, splitRegion);
+
+  const size_t numberOfClustersPerThread = Math::Ceil<size_t>(double(numberOfClusters)/numberOfThreads);
+  const size_t startClusterIndex = id*numberOfClustersPerThread;
+  const size_t endClusterIndex = std::min(startClusterIndex+numberOfClustersPerThread, numberOfClusters);
 
   itk::Size<ImageDimension> radius;
   radius.Fill( 1 );
@@ -395,7 +416,7 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
   typedef ConstNeighborhoodIterator< TInputImage > NeighborhoodType;
 
   // get center and dimension strides for iterator neighborhoods
-  NeighborhoodType it( radius, inputImage, outputRegionForThread );
+  NeighborhoodType it( radius, inputImage, inputImage->GetLargestPossibleRegion() );
   center = it.Size()/2;
   for ( unsigned int i = 0; i < ImageDimension; ++i )
     {
@@ -408,7 +429,7 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
   typedef typename NumericTraits<InputPixelType>::RealType GradientType;
   GradientType G;
 
-  for (size_t clusterIndex = 0; clusterIndex*numberOfClusterComponents < m_Clusters.size(); ++clusterIndex)
+  for (size_t clusterIndex = startClusterIndex; clusterIndex < endClusterIndex; ++clusterIndex)
     {
     // cluster is a reference to array
     ClusterType cluster(numberOfClusterComponents, &m_Clusters[clusterIndex*numberOfClusterComponents]);
@@ -421,11 +442,6 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
       idx[d] = Math::RoundHalfIntegerUp< IndexValueType >(cluster[numberOfComponents+d]);
       }
     //inputImage->TransformPhysicalPointToIndex(pt, idx);
-
-    if (!outputRegionForThread.IsInside(idx))
-      {
-      continue;
-      }
 
     localRegion.SetIndex(idx);
     localRegion.GetModifiableSize().Fill(1u);
@@ -450,7 +466,7 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
         GradientType temp = it.GetPixel(center + stride[i]);
         temp -= it.GetPixel(center - stride[i]);
         temp /= 2.0*spacing[i];
-        // todo need to square?
+        // todo need to square? or take abs?
         G += temp;
         }
 
