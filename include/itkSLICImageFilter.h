@@ -31,18 +31,25 @@ namespace itk
  *
  * The Simple Linear Iterative Clustering (SLIC) algorithm groups
  * pixels into a set of labeled regions or super-pixels. Super-pixels
- * follow natural image boundaries, be compact, an nearly uniform
+ * follow natural image boundaries, are compact, and are nearly uniform
  * regions which can be use as a larger primitive for more efficient
- * additional computation.
+ * computation. The SLIC algorithm can be viewed as a spatially
+ * constrained iterative k-means method.
  *
- * The original SLIC algorithm was designed to
- * cluster on the joint domain of the images index space and it's
- * CIELAB color space. This implementation can work with arbitrary
- * dimensional itk::Image and both Images of scalars and most
- * multi-component image types including the arbitrary length
- * VectorImage. Additionally, his implementation takes into
- * consideration the image spacing. For images of blah and blah
- * parameters blah are recommended.
+ * The original algorithm was designed to cluster on the joint
+ * domain of the images index space and it's CIELAB color space. Our
+ * implementation can work with the arbitrary dimension Image
+ * as well as both images of scalars and most multi-component image
+ * types including the arbitrary length VectorImage.
+ *
+ * The distance between a pixel and a cluster is sum of squares of
+ * the difference between their joint range and domains ( index and
+ * value ). The computation is done in index space with scales
+ * provided by the SpatialProximityWeight parameters.
+ *
+ * The output is a label image with each label representing a
+ * superpixel cluster. Every pixel in the output is labeled, and the
+ * starting label id is zero.
  *
  * \ingroup Segmentation SuperPixel MultiThreading
  */
@@ -88,23 +95,48 @@ public:
 
   using SuperGridSizeType = FixedArray< unsigned int, ImageDimension >;
 
+  /** \brief The spatial weight for the distance function.
+   *
+   * Increasing this value make the superpixels more regular shape,
+   * but more varied in image values. The range of the pixel values
+   * and image dimension can effect the appropriate value.
+   */
   itkSetMacro( SpatialProximityWeight, double );
   itkGetConstMacro( SpatialProximityWeight, double );
 
+  /** \brief Number of iterations to run
+   *
+   * Specify the number of iterations to run when optimizing the clusters.
+   */
   itkSetMacro( MaximumNumberOfIterations, unsigned int );
   itkGetConstMacro( MaximumNumberOfIterations, unsigned int );
 
+  /** \brief The expected superpixel size and shape
+   *
+   * The requested size of a superpixel use to form a regular grid for
+   * initialization  and limits the search space for pixels. The size
+   * may be set anisotropically to provide a directional bias. This
+   * may be set to reflect spacing of this image.
+   */
   itkSetMacro(SuperGridSize, SuperGridSizeType);
   itkGetConstMacro(SuperGridSize, SuperGridSizeType);
   void SetSuperGridSize(unsigned int factor);
   void SetSuperGridSize(unsigned int i, unsigned int factor);
 
+
+  /** \brief Post processing step to enforce superpixel morphology.
+   *
+   * Enable an additional computation which ensure all label pixels of
+   * the same value are connected. Disconnected labeled components are
+   * assigned a new value if of sufficient size, or are relabeled to
+   * the previously encountered value if small.
+   */
   itkSetMacro(EnforceConnectivity, bool);
   itkGetMacro(EnforceConnectivity, bool);
   itkBooleanMacro(EnforceConnectivity);
 
 
-  /* Get the current average cluster residual.
+  /** \brief Get the current average cluster residual.
    *
    * After each iteration the residual is computed as the distance
    * between the current clusters and the previous. This is averaged
