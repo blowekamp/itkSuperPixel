@@ -155,7 +155,7 @@ TEST_F(SLICFixture, Blank2DImage)
 
   filter->SetSuperGridSize(1);
   filter->Update();
-  EXPECT_EQ("c0f89bd80baf367e02bd0c09fd8ba303", MD5Hash(filter->GetOutput()));
+  EXPECT_EQ("10d461742d48d15b8df75387187de426", MD5Hash(filter->GetOutput()));
 
   filter->SetSuperGridSize(200);
   filter->Update();
