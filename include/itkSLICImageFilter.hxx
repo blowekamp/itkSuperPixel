@@ -260,8 +260,6 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
       {
       idx[d] = Math::RoundHalfIntegerUp< IndexValueType >(cluster[numberOfComponents+d]);
       }
-    //std::cout << "Cluster " << i << "@" << pt <<": " << cluster << std::endl;
-    //inputImage->TransformPhysicalPointToIndex(pt, idx);
 
     localRegion.SetIndex(idx);
     localRegion.GetModifiableSize().Fill(1u);
@@ -284,7 +282,6 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
         {
         const IndexType &currentIdx = inputIter.GetIndex();
 
-        //inputImage->TransformIndexToPhysicalPoint(currentIdx, pt);
         pt = ContinuousIndexType(currentIdx);
         const double distance = this->Distance(cluster,
                                                inputIter.Get(),
@@ -354,9 +351,6 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
           cluster[i] += mv[i];
         }
 
-      //typename InputImageType::PointType pt;
-      //inputImage->TransformIndexToPhysicalPoint(idx, pt);
-      //pt = ContinuousIndexType(idx);
       for(unsigned int i = 0; i < ImageDimension; ++i)
         {
         cluster[numberOfComponents+i] += idx[i];
@@ -441,7 +435,6 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
       {
       idx[d] = Math::RoundHalfIntegerUp< IndexValueType >(cluster[numberOfComponents+d]);
       }
-    //inputImage->TransformPhysicalPointToIndex(pt, idx);
 
     localRegion.SetIndex(idx);
     localRegion.GetModifiableSize().Fill(1u);
@@ -492,8 +485,6 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 
     NumericTraits<InputPixelType>::AssignToArray( inputImage->GetPixel(minIdx), cluster );
 
-    //inputImage->TransformIndexToPhysicalPoint(minIdx, pt);
-    //pt = ContinuousIndexType(minIdx);
     for(unsigned int i = 0; i < ImageDimension; ++i)
       {
       cluster[numberOfComponents+i] = minIdx[i];
@@ -569,7 +560,6 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
       {
       idx[d] = Math::RoundHalfIntegerUp< IndexValueType >(cluster[numberOfComponents+d]);
       }
-    //inputImage->TransformPhysicalPointToIndex(pt, idx);
 
 
     if( outputImage->GetPixel(idx) != clusterIndex )
@@ -646,19 +636,10 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 
           if (indexStack.size() >= minSuperSize)
             {
-            // std::cout << "labing " << outputIter.Get()
-            //           << " -> "  << nextLabel
-            //           << " size: " << indexStack.size() << std::endl;
             prevLabel = nextLabel++;
             }
           else
             {
-             // std::cout << "+++relabing " << outputIter.Get()
-             //           << " -> "  << prevLabel
-             //           << " size: " << indexStack.size() << std::endl;
-            // new region was too small, just use last valid region.
-            // TODO: on optimal connected region could be chosen for
-            // the set of connected labels
             for ( size_t indexStackDelabel = 0; indexStackDelabel < indexStack.size(); ++indexStackDelabel )
               {
               outputImage->SetPixel(indexStack[indexStackDelabel], prevLabel);
@@ -798,24 +779,6 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 {
   itkDebugMacro("Starting AfterThreadedGenerateData");
 
-#if 0
-  if (m_DistanceImage != ITK_NULLPTR)
-    {
-    auto writer = ImageFileWriter<DistanceImageType>::New();
-    writer->SetFileName("distance.mha");
-    writer->SetInput(m_DistanceImage);
-    writer->Update();
-    }
-
-  if (m_MarkerImage != ITK_NULLPTR)
-    {
-    auto writer = ImageFileWriter<MarkerImageType>::New();
-    writer->SetFileName("marker.mha");
-    writer->SetInput(m_MarkerImage);
-    writer->Update();
-    }
-
-#endif
 
   m_DistanceImage = ITK_NULLPTR;
   m_MarkerImage = ITK_NULLPTR;
@@ -844,7 +807,6 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
     const DistanceType d = (cluster1[i] - cluster2[i]);
     d1 += d*d;
     }
-  //d1 = std::sqrt(d1);
 
   for (unsigned int j = 0; j < ImageDimension; ++j)
     {
@@ -852,7 +814,6 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
     d2 += d*d;
     ++i;
     }
-  //d2 = std::sqrt(d2);
   return d1+d2;
 }
 
@@ -871,7 +832,6 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
     const DistanceType d = (cluster[i] - v[i]);
     d1 += d*d;
     }
-  //d1 = std::sqrt(d1);
 
   for (unsigned int j = 0; j < ImageDimension; ++j)
     {
@@ -879,7 +839,6 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
     d2 += d*d;
     ++i;
     }
-  //d2 = std::sqrt(d2);
   return d1+d2;
 }
 
