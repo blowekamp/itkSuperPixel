@@ -504,7 +504,7 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 template<typename TInputImage, typename TOutputImage, typename TDistancePixel>
 void
 SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
-::ThreadedConnectivity(const OutputImageRegionType & outputRegionForThread, ThreadIdType threadId )
+::ThreadedConnectivity(const OutputImageRegionType &, ThreadIdType threadId )
 {
 
   itkDebugMacro("Threaded Connectivity");
@@ -513,6 +513,26 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
   OutputImageType *outputImage = this->GetOutput();
   const unsigned int numberOfComponents = inputImage->GetNumberOfComponentsPerPixel();
   const unsigned int numberOfClusterComponents = numberOfComponents+ImageDimension;
+  const size_t       numberOfClusters = m_Clusters.size()/numberOfClusterComponents;
+
+  ThreadIdType numberOfThreads = this->GetNumberOfThreads();
+
+  if ( ProcessObject::MultiThreaderType::GetGlobalMaximumNumberOfThreads() != 0 )
+    {
+    numberOfThreads = vnl_math_min(
+      this->GetNumberOfThreads(), ProcessObject::MultiThreaderType::GetGlobalMaximumNumberOfThreads() );
+    }
+
+  // number of threads can be constrained by the region size, so call the
+  // SplitRequestedRegion to get the real number of threads which will be used
+  typename TOutputImage::RegionType splitRegion;  // dummy region - just to call
+  // the following method
+
+  numberOfThreads = this->SplitRequestedRegion(0, numberOfThreads, splitRegion);
+
+  const size_t numberOfClustersPerThread = Math::Ceil<size_t>(double(numberOfClusters)/numberOfThreads);
+  const size_t startClusterIndex = threadId*numberOfClustersPerThread;
+  const size_t endClusterIndex = std::min(startClusterIndex+numberOfClustersPerThread, numberOfClusters);
 
   const size_t minSuperSize = std::accumulate( m_SuperGridSize.Begin(), m_SuperGridSize.End(), size_t(1), std::multiplies<size_t>() )/4;
 
@@ -524,9 +544,6 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
 
   typedef ConstNeighborhoodIterator< TOutputImage,  ConstantBoundaryCondition< TOutputImage > > NeighborhoodType;
 
-//  typedef NeighborhoodIterator< MarkerImageType >   MarkerNeighborhoodType;
-//  MarkerNeighborhoodType   markerIter(radius, m_MarkerImage, outputRegionForThread);
-
   std::vector< IndexType > indexStack;
 
   for (unsigned int j = 0; j < ImageDimension; ++j)
@@ -535,13 +552,13 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
     }
 
   // get center and dimension strides for iterator neighborhoods
-  NeighborhoodType searchLabelIt( radius, outputImage, outputRegionForThread );
+  NeighborhoodType searchLabelIt( radius, outputImage, outputImage->GetLargestPossibleRegion() );
   searchLabelIt.OverrideBoundaryCondition(&lbc);
 
 
-  for (size_t i = 0; i*numberOfClusterComponents < m_Clusters.size(); ++i)
+  for (size_t clusterIndex = startClusterIndex; clusterIndex < endClusterIndex; ++clusterIndex)
     {
-    ClusterType cluster(numberOfClusterComponents, &m_Clusters[i*numberOfClusterComponents]);
+    ClusterType cluster(numberOfClusterComponents, &m_Clusters[clusterIndex*numberOfClusterComponents]);
     typename InputImageType::RegionType localRegion;
     typename InputImageType::PointType pt;
     IndexType idx;
@@ -552,37 +569,35 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
       }
     //inputImage->TransformPhysicalPointToIndex(pt, idx);
 
-    if (!outputRegionForThread.IsInside(idx))
-      {
-      continue;
-      }
 
-
-    if( outputImage->GetPixel(idx) != i )
+    if( outputImage->GetPixel(idx) != clusterIndex )
       {
-      itkDebugMacro("Searching for cluster: " << i << " near idx: " << idx);
+      itkDebugMacro("Searching for cluster: " << clusterIndex << " near idx: " << idx);
 
       searchLabelIt.SetLocation(idx);
       size_t n = 0;
       for (; n <  searchLabelIt.Size(); ++n )
         {
-        if ( searchLabelIt.GetPixel(n) == i )
+        if ( searchLabelIt.GetPixel(n) == clusterIndex )
           {
           idx =  searchLabelIt.GetIndex(n);
 
-          itkDebugMacro("Non-Center does  match Id. @: " << idx << " for: " << i );
+          itkDebugMacro("Non-Center does  match Id. @: " << idx << " for: " << clusterIndex );
           break;
           }
         }
 
       if ( n >=  searchLabelIt.Size() )
         {
-        itkWarningMacro("Failed to find cluster: " << i << " in super grid size neighborhood!");
+#if defined(DEBUG)
+        itkWarningMacro("Failed to find cluster: " << clusterIndex << " in super grid size neighborhood!");
+#endif
         continue;
         }
+
       }
 
-    this->RelabelConnectedRegion( idx, i, i, indexStack );
+    this->RelabelConnectedRegion( idx, clusterIndex, clusterIndex, indexStack );
 
     if (indexStack.size() < minSuperSize)
       {
