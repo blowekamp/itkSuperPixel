@@ -427,7 +427,7 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
   const typename InputImageType::SpacingType spacing = inputImage->GetSpacing();
 
   typedef typename NumericTraits<InputPixelType>::RealType GradientType;
-  GradientType G;
+  GradientType J[ImageDimension];
 
   for (size_t clusterIndex = startClusterIndex; clusterIndex < endClusterIndex; ++clusterIndex)
     {
@@ -457,25 +457,27 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
     while ( !it.IsAtEnd() )
       {
 
-      G = it.GetPixel(center + stride[0]);
-      G -= it.GetPixel(center - stride[0]);
-      G /= 2.0*spacing[0];
-
-      for ( unsigned int i = 1; i < ImageDimension; i++ )
+      for ( unsigned int i = 0; i < ImageDimension; ++i )
         {
-        GradientType temp = it.GetPixel(center + stride[i]);
-        temp -= it.GetPixel(center - stride[i]);
-        temp /= 2.0*spacing[i];
-        // todo need to square? or take abs?
-        G += temp;
+        J[i] = it.GetPixel(center + stride[i]);
+        J[i] -= it.GetPixel(center - stride[i]);
+        J[i] /= 2.0*spacing[i];
         }
 
       double gNorm = 0.0;
 
-      const typename NumericTraits<InputPixelType>::MeasurementVectorType &vG = G;
-      for ( unsigned int i = 0; i < numberOfComponents; ++i )
+      // Compute some of squares over dimensions and components
+      // (Frobenius norm of the Jacobian Matrix)
+      for ( unsigned int i = 0; i < ImageDimension; ++i )
         {
-        gNorm += vG[i]*vG[i];
+        // convert to a type that has the operator[], for scalars this
+        // will be FixedArray, for VectorImages, this will be the same
+        // type as the pixel and not conversion or allocation will occur.
+        const typename NumericTraits<InputPixelType>::MeasurementVectorType &vG = J[i];
+        for ( unsigned int j = 0; j < numberOfComponents; ++j )
+          {
+          gNorm += vG[j]*vG[j];
+          }
         }
 
 
