@@ -51,6 +51,7 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
     m_SpatialProximityWeight( 10.0 ),
     m_Barrier(Barrier::New()),
     m_EnforceConnectivity(true),
+    m_InitializationPerturbation(true),
     m_AverageResidual(NumericTraits<double>::max())
 {
 #if ITK_VERSION_MAJOR >= 5
@@ -682,7 +683,7 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
       break;
       }
     }
-  if ( doPerturbCluster )
+  if ( doPerturbCluster && m_InitializationPerturbation)
     {
     ThreadedPerturbClusters(outputRegionForThread,threadId);
     m_Barrier->Wait();

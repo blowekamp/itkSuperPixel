@@ -135,6 +135,16 @@ TEST_F(SLICFixture, SetGetPrint)
 
   EXPECT_NO_THROW(filter->SetEnforceConnectivity(true));
   EXPECT_TRUE(filter->GetEnforceConnectivity());
+
+
+  EXPECT_NO_THROW(filter->InitializationPerturbationOn());
+  EXPECT_TRUE(filter->GetInitializationPerturbation());
+  EXPECT_NO_THROW(filter->InitializationPerturbationOff());
+  EXPECT_FALSE(filter->GetInitializationPerturbation());
+
+  EXPECT_NO_THROW(filter->SetInitializationPerturbation(true));
+  EXPECT_TRUE(filter->GetInitializationPerturbation());
+
 }
 
 TEST_F(SLICFixture, Blank2DImage)

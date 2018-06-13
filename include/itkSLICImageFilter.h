@@ -123,6 +123,17 @@ public:
   void SetSuperGridSize(unsigned int factor);
   void SetSuperGridSize(unsigned int i, unsigned int factor);
 
+  /** \brief Enables perturbation of cluster initial location
+   *
+   * After grid based initialization, this option enables moving the
+   * initial cluster location to the minimum gradient in a small
+   * neighborhood. If the grid size is less than three this is
+   * automatically disabled.
+   */
+  itkSetMacro(InitializationPerturbation, bool);
+  itkGetMacro(InitializationPerturbation, bool);
+  itkBooleanMacro(InitializationPerturbation);
+
 
   /** \brief Post processing step to enforce superpixel morphology.
    *
@@ -205,6 +216,8 @@ private:
   typename MarkerImageType::Pointer   m_MarkerImage;
 
   bool m_EnforceConnectivity;
+
+  bool m_InitializationPerturbation;
 
   double m_AverageResidual;
 };
