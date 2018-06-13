@@ -32,17 +32,17 @@ namespace itk
  * The Simple Linear Iterative Clustering (SLIC) algorithm groups
  * pixels into a set of labeled regions or super-pixels. Super-pixels
  * follow natural image boundaries, are compact, and are nearly uniform
- * regions which can be use as a larger primitive for more efficient
+ * regions which can be used as a larger primitive for more efficient
  * computation. The SLIC algorithm can be viewed as a spatially
  * constrained iterative k-means method.
  *
  * The original algorithm was designed to cluster on the joint
- * domain of the images index space and it's CIELAB color space. Our
- * implementation can work with the arbitrary dimension Image
- * as well as both images of scalars and most multi-component image
- * types including the arbitrary length VectorImage.
+ * domain of the images index space and it's CIELAB color space. This
+ * implementation works with images of arbitrary dimension
+ * as well as scalar, single channel, images and most multi-component image
+ * types including ITK's arbitrary length VectorImage.
  *
- * The distance between a pixel and a cluster is sum of squares of
+ * The distance between a pixel and a cluster is the sum of squares of
  * the difference between their joint range and domains ( index and
  * value ). The computation is done in index space with scales
  * provided by the SpatialProximityWeight parameters.
@@ -50,6 +50,10 @@ namespace itk
  * The output is a label image with each label representing a
  * superpixel cluster. Every pixel in the output is labeled, and the
  * starting label id is zero.
+ *
+ * This code was contributed in the Insight Journal paper:
+ * "Scalable Simple Linear Iterative Clustering (SSLIC) Using a
+ * Generic and Parallel Approach" by Lowekamp B. C., Chen D. T., Yaniv Z.
  *
  * \ingroup Segmentation SuperPixel MultiThreading
  */
@@ -97,7 +101,7 @@ public:
 
   /** \brief The spatial weight for the distance function.
    *
-   * Increasing this value make the superpixels more regular shape,
+   * Increasing this value makes the superpixel shape more regular,
    * but more varied in image values. The range of the pixel values
    * and image dimension can effect the appropriate value.
    */
@@ -113,7 +117,7 @@ public:
 
   /** \brief The expected superpixel size and shape
    *
-   * The requested size of a superpixel use to form a regular grid for
+   * The requested size of a superpixel used to form a regular grid for
    * initialization  and limits the search space for pixels. The size
    * may be set anisotropically to provide a directional bias. This
    * may be set to reflect spacing of this image.
@@ -123,10 +127,10 @@ public:
   void SetSuperGridSize(unsigned int factor);
   void SetSuperGridSize(unsigned int i, unsigned int factor);
 
-  /** \brief Enables perturbation of cluster initial location
+  /** \brief Enable perturbation of initial cluster center location
    *
    * After grid based initialization, this option enables moving the
-   * initial cluster location to the minimum gradient in a small
+   * initial cluster center location to the minimum gradient in a small
    * neighborhood. If the grid size is less than three this is
    * automatically disabled.
    */
@@ -137,8 +141,8 @@ public:
 
   /** \brief Post processing step to enforce superpixel morphology.
    *
-   * Enable an additional computation which ensure all label pixels of
-   * the same value are connected. Disconnected labeled components are
+   * Enable an additional computation which ensures all label pixels of
+   * the same value are spatially connected. Disconnected labeled components are
    * assigned a new value if of sufficient size, or are relabeled to
    * the previously encountered value if small.
    */
