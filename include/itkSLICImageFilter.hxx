@@ -112,6 +112,7 @@ SLICImageFilter<TInputImage, TOutputImage, TDistancePixel>
   os << indent << "MaximumNumberOfIterations: " << m_MaximumNumberOfIterations << std::endl;
   os << indent << "SpatialProximityWeight: " << m_SpatialProximityWeight << std::endl;
   os << indent << "EnforceConnectivity: " << m_EnforceConnectivity << std::endl;
+  os << indent << "InitializationPerturbation: " << m_InitializationPerturbation << std::endl;
   os << indent << "AverageResidual: " << m_AverageResidual << std::endl;
 }
 
