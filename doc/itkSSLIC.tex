@@ -618,6 +618,76 @@ improved performance and decreased execution time even in the extreme case with
 88 threads.
 
 
+\section{Updating with Modern Threads}
+
+The forthcoming ITK version 5.0 release includes a number of performance
+enhancements to modernize the classic ITK threading model. The additions include
+multiple threading back ends such as a thread-pool and an Intel Threading
+Building Blocks (TBB) multi-threader interface. The latter supports dynamic load
+balancing and advanced task scheduling. Our initial development of SSLIC
+targeted the ITK version 4 interface. These emerging threading features were
+considered during the initial SSLIC implementation which enabled updates to
+support the new threading models.
+
+The SSLIC implementation is updated to use the ITK version 5 threading model
+while leaving the description of the parallelism identical. The implementation
+changes from using thread barriers in the \texttt{ThreadedGenerateData} method
+to a single threaded \texttt{GenerateData} method, which invokes the new
+\texttt{ParallelizeArray} and \texttt{ParallelizeImageRegion} methods for each
+parallel step as appropriate. Additionally, a mutex lock is introduced to
+control access for the accumulation of the updated clusters. With this updated
+implementation, thread identifiers and persistent per thread allocated storage
+are removed from the multi-threaded step methods.
+
+To evaluate the performance of this update the same 88 core system with the same
+GCC 4.8.5 compiler applied to the same extracted 100th slice of the Visible Human with
+dimensions of $[2048 \times 1216 ]$ pixels is analyzed. The ITK code at hash
+`5470170e` is used for the original version of the SSLIC filter, and the
+update to the modern ITKv5 threading model is applied. The SSLIC algorithm
+timed performance is sampled 20 times, an increase to account for sensitivity in
+the ratio used in the speedup formula. The reported time is the minimum of 20
+executions for the algorithm. We run both the original version and the new ITKv5
+implementation for the three supported multi-threaders: Intel TBB, thread pool,
+and native platform (Table \ref{tab:ITKv5_time_wo}, \ref{tab:ITKv5_time_w}). To
+quantify the performance difference of the new implementation we look at the
+speedup of the ITKv5 update by the ratio of times: $original\ time/new\ time$.
+Also the speed up of ITKv5 implementation compared to the classic platform
+multi-threader is evaluated (Table \ref{tab:ITKv5_speedup_wo},
+\ref{tab:ITKv5_speedup_w}).
+
+The timing results are summarized in Figure \ref{fig:ITKv5_time}. Overall the
+performance is quite similar with regard to scalability and efficiency.
+However, with four or eight threads the timing is marginally faster for the
+original implementation, while with more than 44 threads the ITKv5
+implementation has a slight advantage. This is reflected in Figure
+\ref{fig:ITKv5_speedup}; we conjecture that the use of a barrier in the original
+implementation exhibited poor scalability, while the increase in the number of
+dynamic memory allocations is likely responsible for the decrease in performance with the
+ITKv5 implementation. Further testing and profiling is required to verify these
+conjectures.
+
+
+\begin{figure}
+	\center
+	\includegraphics[width=1.0\textwidth]{images/ITKv5_time.eps}
+	\itkcaption[Thread Timing]{Execution times of the SSLIC filter with a varied number of threads, the original ITKv4 implementation, the ITKv5 implementation, and varied with the different ITK multi-threaders using a single 2D slice of the Visible Human Male with $[2048 \times 1216]$
+		left: without the connectivity step
+		right: with the connectivity step that has a significant single threaded component. }
+	\label{fig:ITKv5_time}
+\end{figure}
+
+
+
+\begin{figure}
+	\center
+	\includegraphics[width=1.0\textwidth]{images/ITKv5_speedup.eps}
+	\itkcaption[Thread Speedup]{Speedup obtained by
+		the ITK SSLIC agorithm wiht the ITKv5 implementation compared the original with a varied number of threads. 
+		left: without the connectivity step
+		right: with the connectivity step that has a significant single threaded component. }
+	\label{fig:ITKv5_speedup}
+\end{figure}
+
 
 \section{Discussion and Conclusion}
 
@@ -783,7 +853,7 @@ Library of Medicine.
 	% 3D
 	\captionof{table}{SSLIC performance as a function of number of threads using 3D color (CIE-Lab) image.}
 	\label{tab:vh_3d}
-	\begin{longtable}{p{1.2cm}| *{6}{p{2cm}}r}
+	\begin{longtable}{p{1.2cm}| *{6}{p{2.5cm}}r}
 		\hline\\[1mm]
 		Number of Threads &   \multicolumn{3}{c}{Without Connectivity}& \multicolumn{3}{c}{With Connectivity}\\
 		{} &    Time (sec)                   &  Efficiency  &       Speedup      &    Time (sec)                &  Efficiency                                       &  Speedup                                  \\
@@ -800,6 +870,105 @@ Library of Medicine.
 		88                &               229.544 &                                     0.377 &                                 33.151 &            328.298 &                                  0.291 &                              25.614 \\
 		\hline
 	\end{longtable}
+}
+
+
+{ \footnotesize
+    % Without Connectivity Timing
+    \captionof{table}{SSLIC execution time as a function of number of threads using 2D color (CIE-Lab) image for the classic ITK threading models and then modern ITKv5 for the Platform, Pool and Intel TBB multi-threader backends with the connectivity step disabled.}
+	\label{tab:ITKv5_time_wo}
+    \begin{longtable}{p{1.2cm}| *{6}{p{2.5cm}}r}
+		\hline\\[1mm]
+		Number Of Threads &  {} & {} & {} & {} & {} & \\
+		{} & Platform-ITKv5 &  Platform &  Pool-ITKv5 &    Pool &  TBB-ITKv5 &     TBB \\
+		\hline\\[1mm]
+		1                 &         1.34867 &   1.35434 &     1.33995 & 1.33794 &    1.33399 & 1.33770 \\
+		2                 &         0.68490 &   0.69555 &     0.69927 & 0.69472 &    0.69832 & 0.69568 \\
+		4                 &         0.38042 &   0.36096 &     0.37429 & 0.35614 &    0.37650 & 0.38728 \\
+		8                 &         0.21055 &   0.20014 &     0.20832 & 0.19859 &    0.20917 & 0.20680 \\
+		16                &         0.12448 &   0.12499 &     0.12277 & 0.12098 &    0.12407 & 0.12199 \\
+		24                &         0.08972 &   0.09700 &     0.08750 & 0.08921 &    0.08905 & 0.09168 \\
+		32                &         0.07299 &   0.07627 &     0.07103 & 0.07583 &    0.07541 & 0.09243 \\
+		44                &         0.06716 &   0.08840 &     0.06633 & 0.08090 &    0.06707 & 0.08494 \\
+		66                &         0.06681 &   0.07791 &     0.06489 & 0.07481 &    0.06552 & 0.07683 \\
+		88                &         0.06612 &   0.07897 &     0.06520 & 0.07814 &    0.06646 & 0.07689 \\
+	\hline
+	\end{longtable}
+}
+
+\newpage
+
+{ \footnotesize
+	% With Connectivity Timing
+	\captionof{table}{SSLIC execution time as a function of number of threads using 2D color (CIE-Lab) image for the classic ITK threading models and then modern ITKv5 for the Platform, Pool and Intel TBB multi-threader backends with the connectivity step enabled.}
+	\label{tab:ITKv5_time_w}
+	\begin{longtable}{p{1.2cm}| *{6}{p{2.5cm}}r}
+		\hline\\[1mm]
+		Number Of Threads &  {} & {} & {} & {} & {} & \\
+		{} & Platform-ITKv5 &  Platform &  Pool-ITKv5 &    Pool &  TBB-ITKv5 &     TBB \\
+		\hline\\[1mm]
+		1                 &         1.49384 &   1.48678 &     1.49108 & 1.47300 &    1.48905 & 1.47446 \\
+		2                 &         0.78172 &   0.77497 &     0.79180 & 0.76258 &    0.77926 & 0.76014 \\
+		4                 &         0.42666 &   0.41437 &     0.42546 & 0.41542 &    0.42530 & 0.42242 \\
+		8                 &         0.24895 &   0.23785 &     0.24425 & 0.23820 &    0.24367 & 0.23841 \\
+		16                &         0.15398 &   0.14963 &     0.15049 & 0.15083 &    0.15281 & 0.14950 \\
+		24                &         0.11750 &   0.11866 &     0.11588 & 0.11687 &    0.11543 & 0.11390 \\
+		32                &         0.09789 &   0.10405 &     0.09599 & 0.10164 &    0.09592 & 0.10590 \\
+		44                &         0.09570 &   0.11320 &     0.09330 & 0.11615 &    0.09358 & 0.10134 \\
+		66                &         0.09016 &   0.10575 &     0.08906 & 0.10324 &    0.08958 & 0.10352 \\
+		88                &         0.09178 &   0.10528 &     0.08576 & 0.10437 &    0.08789 & 0.10294 \\
+	\hline
+	\end{longtable}
+}
+
+{ \footnotesize
+	% Without Connectivity ITKv5 Speedup
+	\captionof{table}{The speed up of the modern ITKv5 implementation of SSLIC compared to the original implementation as a function of number of threads using 2D color (CIE-Lab) image with the connectivity step disabled.}
+	\label{tab:ITKv5_speedup_wo}
+	\begin{longtable}{p{1.2cm}| *{5}{p{2.5cm}}r}
+		\hline\\[1mm]
+		Number Of Threads &  {} & {} & {} & {} & {} & \\
+		{} &  Platform/TBB-ITKv5 &  TBB/TBB-ITKv5 &  Pool/Pool-ITKv5 &  Platform/Platform-ITKv5 \\
+		\hline\\[1mm]
+		1                 &             1.01525 &        1.00278 &          0.99850 &                  1.00421 \\
+		2                 &             0.99604 &        0.99622 &          0.99350 &                  1.01556 \\
+		4                 &             0.95873 &        1.02863 &          0.95149 &                  0.94886 \\
+		8                 &             0.95683 &        0.98869 &          0.95332 &                  0.95058 \\
+		16                &             1.00746 &        0.98329 &          0.98545 &                  1.00409 \\
+		24                &             1.08933 &        1.02956 &          1.01952 &                  1.08117 \\
+		32                &             1.01131 &        1.22566 &          1.06760 &                  1.04488 \\
+		44                &             1.31797 &        1.26646 &          1.21963 &                  1.31622 \\
+		66                &             1.18914 &        1.17266 &          1.15290 &                  1.16616 \\
+		88                &             1.18835 &        1.15696 &          1.19843 &                  1.19447 \\
+	\hline
+	\end{longtable}
+}
+
+
+\newpage
+
+{ \footnotesize
+	% With Connectivity ITKv5 Speedup
+	\captionof{table}{The speed up of the modern ITKv5 implementation of SSLIC compared to the original implementation as a function of number of threads using 2D color (CIE-Lab) image with the connectivity step enabled.}
+	\label{tab:ITKv5_speedup_w}
+	\begin{longtable}{p{1.2cm}| *{5}{p{2.5cm}}r}
+		\hline\\[1mm]
+		Number Of Threads &  {} & {} & {} & {} & {} & \\
+		{} &  Platform/TBB-ITKv5 &  TBB/TBB-ITKv5 &  Pool/Pool-ITKv5 &  Platform/Platform-ITKv5 \\
+		\hline\\[1mm]
+		1                 &             0.99847 &        0.99020 &          0.98787 &                  0.99527 \\
+		2                 &             0.99450 &        0.97547 &          0.96311 &                  0.99137 \\
+		4                 &             0.97430 &        0.99322 &          0.97639 &                  0.97120 \\
+		8                 &             0.97612 &        0.97841 &          0.97524 &                  0.95542 \\
+		16                &             0.97921 &        0.97837 &          1.00227 &                  0.97178 \\
+		24                &             1.02801 &        0.98679 &          1.00853 &                  1.00989 \\
+		32                &             1.08472 &        1.10396 &          1.05886 &                  1.06297 \\
+		44                &             1.20971 &        1.08289 &          1.24491 &                  1.18298 \\
+		66                &             1.18049 &        1.15558 &          1.15928 &                  1.17297 \\
+		88                &             1.19775 &        1.17124 &          1.21704 &                  1.14699 \\
+
+	\hline
+\end{longtable}
 }
 	
 \end{document}
