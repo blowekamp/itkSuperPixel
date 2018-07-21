@@ -727,7 +727,7 @@ quantitatively on diverse datasets of 2D and 3D, scalar and multi-component, as
 well as 2-dimensional and 3-dimensional images.
 
 
-The SSLIC implementation is available as part of ITK's SuperPixel module (https://itk.org/Doxygen/html/group\_\_ITKSuperPixel.html).
+The SSLIC implementation is available as part of ITK's SuperPixel module (\url{https://itk.org/Doxygen/html/group\textunderscore \textunderscore ITKSuperPixel.html}).
 
 \section*{Acknowledgments}
 
@@ -854,7 +854,7 @@ Library of Medicine.
 	% 3D
 	\captionof{table}{SSLIC performance as a function of number of threads using 3D color (CIE-Lab) image.}
 	\label{tab:vh_3d}
-	\begin{longtable}{p{1.2cm}| *{6}{p{2.5cm}}r}
+	\begin{longtable}{p{1.2cm}| *{6}{p{2cm}}r}
 		\hline\\[1mm]
 		Number of Threads &   \multicolumn{3}{c}{Without Connectivity}& \multicolumn{3}{c}{With Connectivity}\\
 		{} &    Time (sec)                   &  Efficiency  &       Speedup      &    Time (sec)                &  Efficiency                                       &  Speedup                                  \\
@@ -878,7 +878,7 @@ Library of Medicine.
     % Without Connectivity Timing
     \captionof{table}{SSLIC execution time as a function of number of threads using 2D color (CIE-Lab) image for the classic ITK threading models and then modern ITKv5 for the Platform, Pool and Intel TBB multi-threader backends with the connectivity step disabled.}
 	\label{tab:ITKv5_time_wo}
-    \begin{longtable}{p{1.2cm}| *{6}{p{2.5cm}}r}
+    \begin{longtable}{p{1.2cm}| *{6}{p{2cm}}r}
 		\hline\\[1mm]
 		Number Of Threads &  {} & {} & {} & {} & {} & \\
 		{} & Platform-ITKv5 &  Platform &  Pool-ITKv5 &    Pool &  TBB-ITKv5 &     TBB \\
@@ -904,7 +904,7 @@ Library of Medicine.
 	% With Connectivity Timing
 	\captionof{table}{SSLIC execution time as a function of number of threads using 2D color (CIE-Lab) image for the classic ITK threading models and then modern ITKv5 for the Platform, Pool and Intel TBB multi-threader backends with the connectivity step enabled.}
 	\label{tab:ITKv5_time_w}
-	\begin{longtable}{p{1.2cm}| *{6}{p{2.5cm}}r}
+	\begin{longtable}{p{1.2cm}| *{6}{p{2cm}}r}
 		\hline\\[1mm]
 		Number Of Threads &  {} & {} & {} & {} & {} & \\
 		{} & Platform-ITKv5 &  Platform &  Pool-ITKv5 &    Pool &  TBB-ITKv5 &     TBB \\
@@ -928,9 +928,9 @@ Library of Medicine.
 	% Without Connectivity ITKv5 Speedup
 	\captionof{table}{The speed up of the modern ITKv5 implementation of SSLIC compared to the original implementation as a function of number of threads using 2D color (CIE-Lab) image with the connectivity step disabled.}
 	\label{tab:ITKv5_speedup_wo}
-	\begin{longtable}{p{1.2cm}| *{5}{p{2.5cm}}r}
+	\begin{longtable}{p{1.2cm}| *{4}{p{2cm}}r}
 		\hline\\[1mm]
-		Number Of Threads &  {} & {} & {} & {} & {} & \\
+		Number Of Threads &  {} & {} & {} & {} & \\
 		{} &  Platform/TBB-ITKv5 &  TBB/TBB-ITKv5 &  Pool/Pool-ITKv5 &  Platform/Platform-ITKv5 \\
 		\hline\\[1mm]
 		1                 &             1.01525 &        1.00278 &          0.99850 &                  1.00421 \\
@@ -955,9 +955,9 @@ Library of Medicine.
 	% With Connectivity ITKv5 Speedup
 	\captionof{table}{The speed up of the modern ITKv5 implementation of SSLIC compared to the original implementation as a function of number of threads using 2D color (CIE-Lab) image with the connectivity step enabled.}
 	\label{tab:ITKv5_speedup_w}
-	\begin{longtable}{p{1.2cm}| *{5}{p{2.5cm}}r}
+	\begin{longtable}{p{1.2cm}| *{4}{p{2cm}}r}
 		\hline\\[1mm]
-		Number Of Threads &  {} & {} & {} & {} & {} & \\
+		Number Of Threads &  {} & {} & {} & {} & \\
 		{} &  Platform/TBB-ITKv5 &  TBB/TBB-ITKv5 &  Pool/Pool-ITKv5 &  Platform/Platform-ITKv5 \\
 		\hline\\[1mm]
 		1                 &             0.99847 &        0.99020 &          0.98787 &                  0.99527 \\
