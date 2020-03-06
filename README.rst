@@ -1,3 +1,10 @@
+This repository is archived.
+
+This filters from this module have been itegrated in the main ITK repository:
+https://github.com/InsightSoftwareConsortium/ITK/tree/master/Modules/Segmentation/SuperPixel
+
+This repository contains the materials used to generate the Insigt Journal Paper.
+
 itkSuperPixel
 =================================
 
